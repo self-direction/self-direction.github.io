@@ -3,518 +3,803 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  
+
   <!-- Primary Meta Tags -->
-  <!-- TODO: Replace with your paper title and author names -->
-  <meta name="title" content="PAPER_TITLE - AUTHOR_NAMES">
-  <!-- TODO: Write a compelling 150-160 character description of your research -->
-  <meta name="description" content="BRIEF_DESCRIPTION_OF_YOUR_RESEARCH_CONTRIBUTION_AND_FINDINGS">
-  <!-- TODO: Add 5-10 relevant keywords for your research area -->
-  <meta name="keywords" content="KEYWORD1, KEYWORD2, KEYWORD3, machine learning, computer vision, AI">
-  <!-- TODO: List all authors -->
-  <meta name="author" content="FIRST_AUTHOR_NAME, SECOND_AUTHOR_NAME">
+  <meta name="title" content="Don't Forget What You Just Learned: Self-Directed Repair Makes Agent Skills Persist">
+  <meta name="description" content="Self-Direction turns an agent's failures into small, persistent LoRA skills: the same model reflects on its mistake, distills a reusable adapter, and retries, while the base model stays frozen.">
+  <meta name="keywords" content="Self-Direction, continual learning, LLM agents, LoRA adapters, test-time learning, skill library, self-reflection, GAIA, Terminal-Bench, Claw-Eval">
+  <meta name="author" content="Yuval Kansal, Karen Ullrich, Polina Kirichenko, Ilia Kulikov, Niraj K. Jha, Mohammad Pezeshki, Mark Ibrahim">
   <meta name="robots" content="index, follow">
   <meta name="language" content="English">
-  
+
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="article">
-  <!-- TODO: Replace with your institution or lab name -->
-  <meta property="og:site_name" content="INSTITUTION_OR_LAB_NAME">
-  <!-- TODO: Same as paper title above -->
-  <meta property="og:title" content="PAPER_TITLE">
-  <!-- TODO: Same as description above -->
-  <meta property="og:description" content="BRIEF_DESCRIPTION_OF_YOUR_RESEARCH_CONTRIBUTION_AND_FINDINGS">
-  <!-- TODO: Replace with your actual website URL -->
-  <meta property="og:url" content="https://YOUR_DOMAIN.com/YOUR_PROJECT_PAGE">
-  <!-- TODO: Create a 1200x630px preview image and update path -->
-  <meta property="og:image" content="https://YOUR_DOMAIN.com/static/images/social_preview.png">
+  <meta property="og:site_name" content="Self-Direction">
+  <meta property="og:title" content="Don't Forget What You Just Learned: Self-Directed Repair Makes Agent Skills Persist">
+  <meta property="og:description" content="When an agent fails, Self-Direction turns the failure into a small LoRA skill that repairs the retry and is reused on related tasks later.">
+  <!-- TODO: replace with the deployed URL (e.g. https://<user>.github.io/self-direction/) -->
+  <meta property="og:url" content="https://YOUR_DOMAIN/self-direction/">
+  <!-- TODO: make this an absolute URL once the site is deployed -->
+  <meta property="og:image" content="static/images/social_preview.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="PAPER_TITLE - Research Preview">
-  <meta property="article:published_time" content="2024-01-01T00:00:00.000Z">
-  <meta property="article:author" content="FIRST_AUTHOR_NAME">
+  <meta property="og:image:alt" content="Self-Direction: an agent turns a failed task into a reusable skill adapter">
+  <meta property="article:author" content="Yuval Kansal">
   <meta property="article:section" content="Research">
-  <meta property="article:tag" content="KEYWORD1">
-  <meta property="article:tag" content="KEYWORD2">
+  <meta property="article:tag" content="continual learning">
+  <meta property="article:tag" content="LLM agents">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
-  <!-- TODO: Replace with your lab/institution Twitter handle -->
-  <meta name="twitter:site" content="@YOUR_TWITTER_HANDLE">
-  <!-- TODO: Replace with first author's Twitter handle -->
-  <meta name="twitter:creator" content="@AUTHOR_TWITTER_HANDLE">
-  <!-- TODO: Same as paper title above -->
-  <meta name="twitter:title" content="PAPER_TITLE">
-  <!-- TODO: Same as description above -->
-  <meta name="twitter:description" content="BRIEF_DESCRIPTION_OF_YOUR_RESEARCH_CONTRIBUTION_AND_FINDINGS">
-  <!-- TODO: Same as social preview image above -->
-  <meta name="twitter:image" content="https://YOUR_DOMAIN.com/static/images/social_preview.png">
-  <meta name="twitter:image:alt" content="PAPER_TITLE - Research Preview">
+  <meta name="twitter:title" content="Don't Forget What You Just Learned: Self-Directed Repair Makes Agent Skills Persist">
+  <meta name="twitter:description" content="When an agent fails, Self-Direction turns the failure into a small LoRA skill that repairs the retry and is reused on related tasks later.">
+  <meta name="twitter:image" content="static/images/social_preview.png">
+  <meta name="twitter:image:alt" content="Self-Direction: an agent turns a failed task into a reusable skill adapter">
 
-  <!-- Academic/Research Specific -->
-  <meta name="citation_title" content="PAPER_TITLE">
-  <meta name="citation_author" content="FIRST_AUTHOR_LAST, FIRST_AUTHOR_FIRST">
-  <meta name="citation_author" content="SECOND_AUTHOR_LAST, SECOND_AUTHOR_FIRST">
-  <meta name="citation_publication_date" content="2024">
-  <meta name="citation_conference_title" content="CONFERENCE_NAME">
-  <meta name="citation_pdf_url" content="https://YOUR_DOMAIN.com/static/pdfs/paper.pdf">
-  
-  <!-- Additional SEO -->
-  <meta name="theme-color" content="#2563eb">
-  <meta name="msapplication-TileColor" content="#2563eb">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  
-  <!-- Preconnect for performance -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://ajax.googleapis.com">
-  <link rel="preconnect" href="https://documentcloud.adobe.com">
-  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <!-- Academic/Research Specific (Google Scholar) -->
+  <meta name="citation_title" content="Don't Forget What You Just Learned: Self-Directed Repair Makes Agent Skills Persist">
+  <meta name="citation_author" content="Kansal, Yuval">
+  <meta name="citation_author" content="Ullrich, Karen">
+  <meta name="citation_author" content="Kirichenko, Polina">
+  <meta name="citation_author" content="Kulikov, Ilia">
+  <meta name="citation_author" content="Jha, Niraj K.">
+  <meta name="citation_author" content="Pezeshki, Mohammad">
+  <meta name="citation_author" content="Ibrahim, Mark">
+  <meta name="citation_publication_date" content="2026">
+  <!-- TODO: add citation_pdf_url / citation_arxiv_id once the paper is public -->
 
+  <meta name="theme-color" content="#FBFAF7">
 
-  <!-- TODO: Replace with your paper title and authors -->
-  <title>PAPER_TITLE - AUTHOR_NAMES | Academic Research</title>
-  
-  <!-- Favicon and App Icons -->
+  <title>Self-Direction · Don't Forget What You Just Learned</title>
+
+  <!-- Lets CSS hide scroll-reveal blocks only when JS can reveal them again -->
+  <script>document.documentElement.classList.add('js');</script>
+
+  <link rel="icon" type="image/svg+xml" href="static/images/favicon.svg">
   <link rel="icon" type="image/x-icon" href="static/images/favicon.ico">
-  <link rel="apple-touch-icon" href="static/images/favicon.ico">
-  
-  <!-- Critical CSS - Load synchronously -->
+  <link rel="apple-touch-icon" href="static/images/apple-touch-icon.png">
+
+  <!-- Self-hosted fonts (see static/fonts/README.md): Newsreader · Instrument Sans · JetBrains Mono -->
+  <link rel="preload" href="static/fonts/newsreader-roman.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="static/fonts/instrument-sans.woff2" as="font" type="font/woff2" crossorigin>
+
   <link rel="stylesheet" href="static/css/bulma.min.css">
-  <link rel="stylesheet" href="static/css/index.css">
-  
-  <!-- Non-critical CSS - Load asynchronously -->
-  <link rel="preload" href="static/css/bulma-carousel.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="static/css/bulma-slider.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="static/css/fontawesome.all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  
-  <!-- Fallback for browsers that don't support preload -->
-  <noscript>
-    <link rel="stylesheet" href="static/css/bulma-carousel.min.css">
-    <link rel="stylesheet" href="static/css/bulma-slider.min.css">
-    <link rel="stylesheet" href="static/css/fontawesome.all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
-  </noscript>
-  
-  <!-- Fonts - Optimized loading -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  
-  <!-- Defer non-critical JavaScript -->
-  <script defer src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-  <script defer src="https://documentcloud.adobe.com/view-sdk/main.js"></script>
-  <script defer src="static/js/fontawesome.all.min.js"></script>
-  <script defer src="static/js/bulma-carousel.min.js"></script>
-  <script defer src="static/js/bulma-slider.min.js"></script>
-  <script defer src="static/js/index.js"></script>
-  
+  <link rel="stylesheet" href="static/css/index.css?v=20261006">
+
+  <script defer src="static/js/index.js?v=20261006"></script>
+
   <!-- Structured Data for Academic Papers -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "ScholarlyArticle",
-    "headline": "PAPER_TITLE",
-    "description": "BRIEF_DESCRIPTION_OF_YOUR_RESEARCH_CONTRIBUTION_AND_FINDINGS",
+    "headline": "Don't Forget What You Just Learned: Self-Directed Repair Makes Agent Skills Persist",
+    "description": "Self-Direction turns an agent's failures into small, persistent LoRA skills that repair the retry and are reused on related tasks later, while the base model stays frozen.",
     "author": [
-      {
-        "@type": "Person",
-        "name": "FIRST_AUTHOR_NAME",
-        "affiliation": {
-          "@type": "Organization",
-          "name": "INSTITUTION_NAME"
-        }
-      },
-      {
-        "@type": "Person",
-        "name": "SECOND_AUTHOR_NAME",
-        "affiliation": {
-          "@type": "Organization",
-          "name": "INSTITUTION_NAME"
-        }
-      }
+      {"@type": "Person", "name": "Yuval Kansal", "url": "https://yuvalkansal.me", "affiliation": {"@type": "Organization", "name": "Princeton University"}},
+      {"@type": "Person", "name": "Karen Ullrich", "url": "https://karenullrich.info/", "affiliation": {"@type": "Organization", "name": "Meta FAIR"}},
+      {"@type": "Person", "name": "Polina Kirichenko", "url": "https://polkirichenko.github.io/", "affiliation": {"@type": "Organization", "name": "Meta FAIR"}},
+      {"@type": "Person", "name": "Ilia Kulikov", "url": "https://www.linkedin.com/in/ilia-kulikov-a42918bb", "affiliation": {"@type": "Organization", "name": "Meta FAIR"}},
+      {"@type": "Person", "name": "Niraj K. Jha", "url": "https://ece.princeton.edu/people/niraj-jha", "affiliation": {"@type": "Organization", "name": "Princeton University"}},
+      {"@type": "Person", "name": "Mohammad Pezeshki", "url": "https://x.com/mpezeshki91", "affiliation": {"@type": "Organization", "name": "Meta FAIR"}},
+      {"@type": "Person", "name": "Mark Ibrahim", "url": "https://markibrahim.me/", "affiliation": {"@type": "Organization", "name": "Meta FAIR"}}
     ],
-    "datePublished": "2024-01-01",
-    "publisher": {
-      "@type": "Organization",
-      "name": "CONFERENCE_OR_JOURNAL_NAME"
-    },
-    "url": "https://YOUR_DOMAIN.com/YOUR_PROJECT_PAGE",
-    "image": "https://YOUR_DOMAIN.com/static/images/social_preview.png",
-    "keywords": ["KEYWORD1", "KEYWORD2", "KEYWORD3", "machine learning", "computer vision"],
-    "abstract": "FULL_ABSTRACT_TEXT_HERE",
-    "citation": "BIBTEX_CITATION_HERE",
+    "datePublished": "2026",
+    "keywords": ["continual learning", "LLM agents", "LoRA", "test-time learning", "skill library"],
     "isAccessibleForFree": true,
-    "license": "https://creativecommons.org/licenses/by/4.0/",
-    "mainEntity": {
-      "@type": "WebPage",
-      "@id": "https://YOUR_DOMAIN.com/YOUR_PROJECT_PAGE"
-    },
-    "about": [
-      {
-        "@type": "Thing",
-        "name": "RESEARCH_AREA_1"
-      },
-      {
-        "@type": "Thing", 
-        "name": "RESEARCH_AREA_2"
-      }
-    ]
-  }
-  </script>
-  
-  <!-- Website/Organization Structured Data -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "INSTITUTION_OR_LAB_NAME",
-    "url": "https://YOUR_INSTITUTION_WEBSITE.com",
-    "logo": "https://YOUR_DOMAIN.com/static/images/favicon.ico",
-    "sameAs": [
-      "https://twitter.com/YOUR_TWITTER_HANDLE",
-      "https://github.com/YOUR_GITHUB_USERNAME"
-    ]
+    "license": "https://creativecommons.org/licenses/by-sa/4.0/"
   }
   </script>
 </head>
 <body>
 
+  <!-- Shared SVG symbols: the brand fork (one path splits into the TRAIN and REUSE branches, then merges) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="fork-mark" viewBox="0 0 32 32">
+      <path d="M3 16h5" stroke="#18212E" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+      <path d="M8 16c3 0 4-7 8-7s5 7 8 7" stroke="#1685F8" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+      <path d="M8 16c3 0 4 7 8 7s5-7 8-7" stroke="#16A16A" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+      <circle cx="8" cy="16" r="2.6" fill="#18212E"/>
+      <circle cx="25.5" cy="16" r="2.6" fill="#18212E"/>
+    </symbol>
+    <symbol id="fork-divider" viewBox="0 0 640 48" preserveAspectRatio="none">
+      <path d="M0 24h214" stroke="#E2DED4" stroke-width="2" fill="none"/>
+      <path d="M426 24h214" stroke="#E2DED4" stroke-width="2" fill="none"/>
+      <path d="M214 24c40 0 50-16 106-16s66 16 106 16" stroke="#1685F8" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+      <path d="M214 24c40 0 50 16 106 16s66-16 106-16" stroke="#16A16A" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+      <circle cx="214" cy="24" r="5" fill="#FBFAF7" stroke="#18212E" stroke-width="2"/>
+      <circle cx="426" cy="24" r="5" fill="#FBFAF7" stroke="#18212E" stroke-width="2"/>
+    </symbol>
+  </svg>
 
-  <!-- Scroll to Top Button -->
-  <button class="scroll-to-top" onclick="scrollToTop()" title="Scroll to top" aria-label="Scroll to top">
-    <i class="fas fa-chevron-up"></i>
-  </button>
+  <a class="skip-link" href="#main-content">Skip to content</a>
 
-  <!-- More Works Dropdown -->
-  <div class="more-works-container">
-    <button class="more-works-btn" onclick="toggleMoreWorks()" title="View More Works from Our Lab">
-      <i class="fas fa-flask"></i>
-      More Works
-      <i class="fas fa-chevron-down dropdown-arrow"></i>
-    </button>
-    <div class="more-works-dropdown" id="moreWorksDropdown">
-      <div class="dropdown-header">
-        <h4>More Works from Our Lab</h4>
-        <button class="close-btn" onclick="toggleMoreWorks()">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-      <div class="works-list">
-        <!-- TODO: Replace with your lab's related works -->
-        <a href="https://arxiv.org/abs/PAPER_ID_1" class="work-item" target="_blank">
-          <div class="work-info">
-            <!-- TODO: Replace with actual paper title -->
-            <h5>Paper Title 1</h5>
-            <!-- TODO: Replace with brief description -->
-            <p>Brief description of the work and its main contribution.</p>
-            <!-- TODO: Replace with venue and year -->
-            <span class="work-venue">Conference/Journal 2024</span>
-          </div>
-          <i class="fas fa-external-link-alt"></i>
-        </a>
-        <!-- TODO: Add more related works or remove extra items -->
-        <a href="https://arxiv.org/abs/PAPER_ID_2" class="work-item" target="_blank">
-          <div class="work-info">
-            <h5>Paper Title 2</h5>
-            <p>Brief description of the work and its main contribution.</p>
-            <span class="work-venue">Conference/Journal 2023</span>
-          </div>
-          <i class="fas fa-external-link-alt"></i>
-        </a>
-        <a href="https://arxiv.org/abs/PAPER_ID_3" class="work-item" target="_blank">
-          <div class="work-info">
-            <h5>Paper Title 3</h5>
-            <p>Brief description of the work and its main contribution.</p>
-            <span class="work-venue">Conference/Journal 2023</span>
-          </div>
-          <i class="fas fa-external-link-alt"></i>
-        </a>
-      </div>
+  <header class="site-nav" id="site-nav">
+    <div class="nav-inner">
+      <a class="brand" href="#top" aria-label="Self-Direction, back to top">
+        <svg class="brand-mark" aria-hidden="true"><use href="#fork-mark"/></svg>
+        <span>Self-Direction</span>
+      </a>
+      <nav class="nav-links" aria-label="Sections">
+        <a href="#method">Method</a>
+        <a href="#results">Results</a>
+        <a href="#skills">Skills</a>
+        <a href="#bibtex">Cite</a>
+      </nav>
     </div>
-  </div>
+  </header>
 
   <main id="main-content">
-  <section class="hero">
-    <div class="hero-body">
-      <div class="container is-max-desktop">
-        <div class="columns is-centered">
-          <div class="column has-text-centered">
-            <!-- TODO: Replace with your paper title -->
-            <h1 class="title is-1 publication-title">Academic Project Page</h1>
-            <div class="is-size-5 publication-authors">
-              <!-- TODO: Replace with your paper authors and their personal links -->
-              <span class="author-block">
-                <a href="FIRST AUTHOR PERSONAL LINK" target="_blank">First Author</a><sup>*</sup>,</span>
-                <span class="author-block">
-                  <a href="SECOND AUTHOR PERSONAL LINK" target="_blank">Second Author</a><sup>*</sup>,</span>
-                  <span class="author-block">
-                    <a href="THIRD AUTHOR PERSONAL LINK" target="_blank">Third Author</a>
-                  </span>
-                  </div>
 
-                  <div class="is-size-5 publication-authors">
-                    <!-- TODO: Replace with your institution and conference/journal info -->
-                    <span class="author-block">Institution Name<br>Conference name and year</span>
-                    <!-- TODO: Remove this line if no equal contribution -->
-                    <span class="eql-cntrb"><small><br><sup>*</sup>Indicates Equal Contribution</small></span>
-                  </div>
+  <!-- ============================== Hero ============================== -->
+  <section class="hero-sd" id="top">
+    <div class="hero-wash" aria-hidden="true"></div>
+    <div class="wrap">
+      <p class="eyebrow hero-eyebrow">
+        <svg class="eyebrow-mark" aria-hidden="true"><use href="#fork-mark"/></svg>
+        Self-Direction · continual learning for LLM agents
+      </p>
 
-                  <div class="column has-text-centered">
-                    <div class="publication-links">
-                         <!-- TODO: Update with your arXiv paper ID -->
-                      <span class="link-block">
-                        <a href="https://arxiv.org/pdf/<ARXIV PAPER ID>.pdf" target="_blank"
-                        class="external-link button is-normal is-rounded is-dark">
-                        <span class="icon">
-                          <i class="fas fa-file-pdf"></i>
-                        </span>
-                        <span>Paper</span>
-                      </a>
-                    </span>
+      <h1 class="paper-title">
+        <span class="title-main">Don't Forget What You <em>Just Learned</em>:</span>
+        <span class="title-sub">Self-Directed Repair Makes Agent Skills Persist</span>
+      </h1>
 
-                    <!-- TODO: Add your supplementary material PDF or remove this section -->
-                    <span class="link-block">
-                      <a href="static/pdfs/supplementary_material.pdf" target="_blank"
-                      class="external-link button is-normal is-rounded is-dark">
-                      <span class="icon">
-                        <i class="fas fa-file-pdf"></i>
-                      </span>
-                      <span>Supplementary</span>
-                    </a>
-                  </span>
+      <p class="authors">
+        <span class="author"><a href="https://yuvalkansal.me" target="_blank" rel="noopener">Yuval Kansal</a><sup>1,*</sup></span>
+        <span class="author"><a href="https://karenullrich.info/" target="_blank" rel="noopener">Karen Ullrich</a><sup>2</sup></span>
+        <span class="author"><a href="https://polkirichenko.github.io/" target="_blank" rel="noopener">Polina Kirichenko</a><sup>2</sup></span>
+        <span class="author"><a href="https://www.linkedin.com/in/ilia-kulikov-a42918bb" target="_blank" rel="noopener">Ilia Kulikov</a><sup>2</sup></span>
+        <span class="author"><a href="https://ece.princeton.edu/people/niraj-jha" target="_blank" rel="noopener">Niraj K. Jha</a><sup>1</sup></span>
+        <span class="author"><a href="https://x.com/mpezeshki91" target="_blank" rel="noopener">Mohammad Pezeshki</a><sup>2</sup></span>
+        <span class="author"><a href="https://markibrahim.me/" target="_blank" rel="noopener">Mark Ibrahim</a><sup>2</sup></span>
+      </p>
+      <p class="affiliations">
+        <span><sup>1</sup>Princeton University</span>
+        <span><sup>2</sup>Meta FAIR</span>
+      </p>
+      <p class="footnote-line"><sup>*</sup>Work done during an internship at Meta FAIR.</p>
+      <!-- TODO: add the venue line once it is public, e.g. <p class="venue">Conference 2027</p> -->
 
-                  <!-- TODO: Replace with your GitHub repository URL -->
-                  <span class="link-block">
-                    <a href="https://github.com/YOUR REPO HERE" target="_blank"
-                    class="external-link button is-normal is-rounded is-dark">
-                    <span class="icon">
-                      <i class="fab fa-github"></i>
-                    </span>
-                    <span>Code</span>
-                  </a>
-                </span>
+      <!-- TODO: point these at the real PDF / arXiv / code; then drop aria-disabled and the "soon" tag -->
+      <div class="link-row">
+        <a class="pill-btn is-soon" href="#" aria-disabled="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>
+          <span>Paper</span><span class="soon">soon</span>
+        </a>
+        <a class="pill-btn is-soon" href="#" aria-disabled="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="1.5"/><path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13h4"/></svg>
+          <span>arXiv</span><span class="soon">soon</span>
+        </a>
+        <a class="pill-btn is-soon" href="#" aria-disabled="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18l-6-6 6-6M15 6l6 6-6 6"/></svg>
+          <span>Code</span><span class="soon">soon</span>
+        </a>
+        <a class="pill-btn" href="#bibtex">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h4v4c0 3-1.5 5-4 6M15 7h4v4c0 3-1.5 5-4 6"/></svg>
+          <span>BibTeX</span>
+        </a>
+      </div>
 
-                <!-- TODO: Update with your arXiv paper ID -->
-                <span class="link-block">
-                  <a href="https://arxiv.org/abs/<ARXIV PAPER ID>" target="_blank"
-                  class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon">
-                    <i class="ai ai-arxiv"></i>
-                  </span>
-                  <span>arXiv</span>
-                </a>
-              </span>
-            </div>
+      <figure class="hero-figure">
+        <div class="anim-frame">
+          <iframe src="static/animations/self-direction-loop/index.html"
+                  title="Animation: the Self-Direction loop. An agent fails a task, trains or reuses a skill adapter, and retries."
+                  loading="eager"></iframe>
+        </div>
+        <figcaption class="hero-caption">
+          <span class="branch-chip is-train"><i aria-hidden="true"></i>Train: learn a new skill from the mistake</span>
+          <span class="branch-chip is-reuse"><i aria-hidden="true"></i>Inference: reuse a stored skill, no training</span>
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============================== TL;DR ============================== -->
+  <section class="band tldr" aria-labelledby="tldr-title">
+    <div class="wrap">
+      <h2 id="tldr-title" class="visually-hidden">Summary</h2>
+      <svg class="fork-divider" aria-hidden="true" focusable="false"><use href="#fork-divider"/></svg>
+      <p class="tldr-statement reveal">
+        When an agent fails, <strong>Self-Direction</strong> turns the failure into a small LoRA skill.
+        The skill fixes the retry, joins a growing library, and is reused on related tasks later,
+        while the base model stays frozen.
+      </p>
+
+      <div class="kpi-row reveal" role="list">
+        <div class="stat" role="listitem">
+          <span class="stat-label">Terminal-Bench 2.1 task success</span>
+          <span class="stat-value">65.5%</span>
+          <span class="stat-delta is-good"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 10V2M2.5 5.5L6 2l3.5 3.5"/></svg>+13.8 pp vs. base model</span>
+        </div>
+        <div class="stat" role="listitem">
+          <span class="stat-label">Claw-Eval task success</span>
+          <span class="stat-value">73.3%</span>
+          <span class="stat-delta is-good"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 10V2M2.5 5.5L6 2l3.5 3.5"/></svg>+8.9 pp vs. base model</span>
+        </div>
+        <div class="stat" role="listitem">
+          <span class="stat-label">GAIA agent rollouts per task</span>
+          <span class="stat-value">2.1</span>
+          <span class="stat-delta is-good"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2v8M2.5 6.5L6 10l3.5-3.5"/></svg>65% fewer than pass@6, same 55.8% accuracy</span>
+        </div>
+        <div class="stat" role="listitem">
+          <span class="stat-label">Later failures that reused a stored skill</span>
+          <span class="stat-value">97.1%</span>
+          <span class="stat-delta">GAIA stream, 3-adapter library: no new training</span>
+        </div>
+      </div>
+      <p class="fineprint reveal">Mean of three complete runs on Terminal-Bench 2.1 and Claw-Eval, with Qwen3.6-27B as the base model. Details in <a href="#results">Results</a>.</p>
+    </div>
+  </section>
+
+  <!-- ============================== Problem ============================== -->
+  <section class="section-sd" id="problem" aria-labelledby="problem-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">01 · The problem</p>
+        <h2 id="problem-title">Extra compute usually disappears with the episode</h2>
+        <p class="lede">Agents can often recover from a mistake by trying again. But retries and test-time scaling leave nothing
+          behind: the next time a similar task appears, the agent makes the same mistake. Self-Direction keeps part of that
+          effort as a skill.</p>
+      </div>
+
+      <div class="encounters reveal" role="img" aria-label="On the first encounter, a mistake is corrected by spending extra compute. On future encounters, existing agents repeat the mistake, while Self-Direction avoids it.">
+        <div class="enc-card enc-first">
+          <span class="enc-kicker">First encounter</span>
+          <svg class="enc-icon" viewBox="0 0 48 48" aria-hidden="true">
+            <rect x="12" y="7" width="22" height="30" rx="3" fill="#fff" stroke="#334455" stroke-width="2.4"/>
+            <path d="M17 15h12M17 21h12M17 27h7" stroke="#8B97A3" stroke-width="2.2" stroke-linecap="round"/>
+            <path d="M33 26l9 16H24z" fill="#FFF1EA" stroke="#E8674B" stroke-width="2.4" stroke-linejoin="round"/>
+            <path d="M33 32v4.5" stroke="#E8674B" stroke-width="2.4" stroke-linecap="round"/><circle cx="33" cy="39.2" r="1.3" fill="#E8674B"/>
+          </svg>
+          <strong>Mistake corrected</strong>
+          <span>by spending extra compute</span>
+        </div>
+        <svg class="enc-split" viewBox="0 0 120 200" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0 100c40 0 40-62 112-62" stroke="#B9C0C9" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M0 100c40 0 40 62 112 62" stroke="#16A16A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        </svg>
+        <div class="enc-future">
+          <span class="enc-kicker">Future encounters, same or similar task</span>
+          <div class="enc-card enc-bad">
+            <span class="enc-badge is-bad" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg></span>
+            <div><strong>Existing agents</strong><span>Mistake repeated: the extra compute is gone</span></div>
+          </div>
+          <div class="enc-card enc-good">
+            <span class="enc-badge is-good" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7"/></svg></span>
+            <div><strong>Self-Direction</strong><span>Mistake avoided: the lesson persists as a skill</span></div>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-
-<!-- Teaser video-->
-<section class="hero teaser">
-  <div class="container is-max-desktop">
-    <div class="hero-body">
-      <!-- TODO: Replace with your teaser video -->
-      <video poster="" id="tree" autoplay controls muted loop height="100%" preload="metadata">
-        <!-- TODO: Add your video file path here -->
-        <source src="static/videos/banner_video.mp4" type="video/mp4">
-      </video>
-      <!-- TODO: Replace with your video description -->
-      <h2 class="subtitle has-text-centered">
-        Aliquam vitae elit ullamcorper tellus egestas pellentesque. Ut lacus tellus, maximus vel lectus at, placerat pretium mi. Maecenas dignissim tincidunt vestibulum. Sed consequat hendrerit nisl ut maximus. 
-      </h2>
-    </div>
-  </div>
-</section>
-<!-- End teaser video -->
-
-<!-- Paper abstract -->
-<section class="section hero is-light">
-  <div class="container is-max-desktop">
-    <div class="columns is-centered has-text-centered">
-      <div class="column is-four-fifths">
-        <h2 class="title is-3">Abstract</h2>
-        <div class="content has-text-justified">
-          <!-- TODO: Replace with your paper abstract -->
-          <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin ullamcorper tellus sed ante aliquam tempus. Etiam porttitor urna feugiat nibh elementum, et tempor dolor mattis. Donec accumsan enim augue, a vulputate nisi sodales sit amet. Proin bibendum ex eget mauris cursus euismod nec et nibh. Maecenas ac gravida ante, nec cursus dui. Vivamus purus nibh, placerat ac purus eget, sagittis vestibulum metus. Sed vestibulum bibendum lectus gravida commodo. Pellentesque auctor leo vitae sagittis suscipit.
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-<!-- End paper abstract -->
-
-
-<!-- Image carousel -->
-<section class="hero is-small">
-  <div class="hero-body">
-    <div class="container">
-      <div id="results-carousel" class="carousel results-carousel">
-       <div class="item">
-        <!-- TODO: Replace with your research result images -->
-        <img src="static/images/carousel1.jpg" alt="First research result visualization" loading="lazy"/>
-        <!-- TODO: Replace with description of this result -->
-        <h2 class="subtitle has-text-centered">
-          First image description.
-        </h2>
-      </div>
-      <div class="item">
-        <!-- Your image here -->
-        <img src="static/images/carousel2.jpg" alt="Second research result visualization" loading="lazy"/>
-        <h2 class="subtitle has-text-centered">
-          Second image description.
-        </h2>
-      </div>
-      <div class="item">
-        <!-- Your image here -->
-        <img src="static/images/carousel3.jpg" alt="Third research result visualization" loading="lazy"/>
-        <h2 class="subtitle has-text-centered">
-         Third image description.
-       </h2>
-     </div>
-     <div class="item">
-      <!-- Your image here -->
-      <img src="static/images/carousel4.jpg" alt="Fourth research result visualization" loading="lazy"/>
-      <h2 class="subtitle has-text-centered">
-        Fourth image description.
-      </h2>
-    </div>
-  </div>
-</div>
-</div>
-</section>
-<!-- End image carousel -->
-
-
-
-
-<!-- Youtube video -->
-<section class="hero is-small is-light">
-  <div class="hero-body">
-    <div class="container">
-      <!-- Paper video. -->
-      <h2 class="title is-3">Video Presentation</h2>
-      <div class="columns is-centered has-text-centered">
-        <div class="column is-four-fifths">
-          
-          <div class="publication-video">
-            <!-- TODO: Replace with your YouTube video ID -->
-            <iframe src="https://www.youtube.com/embed/JkaxUblCGz0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-<!-- End youtube video -->
-
-
-<!-- Video carousel -->
-<section class="hero is-small">
-  <div class="hero-body">
-    <div class="container">
-      <h2 class="title is-3">Another Carousel</h2>
-      <div id="results-carousel" class="carousel results-carousel">
-        <div class="item item-video1">
-          <!-- TODO: Add poster image for better preview -->
-          <video poster="" id="video1" controls muted loop height="100%" preload="metadata">
-            <!-- Your video file here -->
-            <source src="static/videos/carousel1.mp4" type="video/mp4">
-          </video>
-        </div>
-        <div class="item item-video2">
-          <!-- TODO: Add poster image for better preview -->
-          <video poster="" id="video2" controls muted loop height="100%" preload="metadata">
-            <!-- Your video file here -->
-            <source src="static/videos/carousel2.mp4" type="video/mp4">
-          </video>
-        </div>
-        <div class="item item-video3">
-          <!-- TODO: Add poster image for better preview -->
-          <video poster="" id="video3" controls muted loop height="100%" preload="metadata">
-            <!-- Your video file here -->
-            <source src="static/videos/carousel3.mp4" type="video/mp4">
-          </video>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-<!-- End video carousel -->
-
-
-
-
-
-
-<!-- Paper poster -->
-<section class="hero is-small is-light">
-  <div class="hero-body">
-    <div class="container">
-      <h2 class="title">Poster</h2>
-
-      <!-- TODO: Replace with your poster PDF -->
-      <iframe  src="static/pdfs/sample.pdf" width="100%" height="550">
-          </iframe>
-        
       </div>
     </div>
   </section>
-<!--End paper poster -->
 
-
-
-<!--BibTex citation -->
-  <section class="section" id="BibTeX">
-    <div class="container is-max-desktop content">
-      <div class="bibtex-header">
-        <h2 class="title">BibTeX</h2>
-        <button class="copy-bibtex-btn" onclick="copyBibTeX()" title="Copy BibTeX to clipboard">
-          <i class="fas fa-copy"></i>
-          <span class="copy-text">Copy</span>
-        </button>
+  <!-- ============================== Abstract ============================== -->
+  <section class="section-sd is-tinted" id="abstract" aria-labelledby="abstract-title">
+    <div class="wrap reveal">
+      <p class="eyebrow">Abstract</p>
+      <h2 id="abstract-title" class="visually-hidden">Abstract</h2>
+      <!-- Abstract from the paper -->
+      <div class="abstract">
+        <p>Intelligent agents should learn from their mistakes so experience compounds into continuous improvement. Yet today's
+          agents recover from a mistake only temporarily: in-context reflections are easily forgotten across sessions and compete
+          for limited context, while full-parameter fine-tuning is expensive and can interfere with existing capabilities. We
+          introduce <strong>Self-Direction</strong>, a mechanism for agents to learn from mistakes that combines the benefits of
+          temporary retries in-context and policy updates. When an agent fails a task, it reflects on its own trajectory in order
+          to extract a lesson and immediately distills it into a lightweight low-rank adapter. By keeping the original weights
+          frozen, Self-Direction preserves existing capabilities while only training 0.02% additional parameters for each
+          adapter. The agent then saves these adapters into a persistent skill library, automatically routing them to solve
+          related problems later.</p>
+        <p>Experiments with open agents based on the Qwen-family across open-ended research (GAIA), tool-use workflows
+          (Claw-Eval), and terminal tasks (Terminal-Bench 2.1) show our method improves overall success rates by 8.9 to 17.0
+          percentage points and performs competitively with frontier systems. We find Self-Direction avoids repeating mistakes
+          across future encounters of a task, nearly doubling the reliability of an agent's corrections and enables transfer of
+          learned skills with just a handful of adapters generalizing to dozens of new tasks without additional training.
+          Ultimately, this self-directed repair transforms everyday mistakes into lasting, reusable capabilities.</p>
       </div>
-      <pre id="bibtex-code"><code>@article{YourPaperKey2024,
-  title={Your Paper Title Here},
-  author={First Author and Second Author and Third Author},
-  journal={Conference/Journal Name},
-  year={2024},
-  url={https://your-domain.com/your-project-page}
-}</code></pre>
     </div>
-</section>
-<!--End BibTex citation -->
+  </section>
 
+  <!-- ============================== Method ============================== -->
+  <section class="section-sd" id="method" aria-labelledby="method-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">02 · Method</p>
+        <h2 id="method-title">One loop: fail, reflect, distill, retry, reuse</h2>
+        <p class="lede">The base model is never modified. Each lesson becomes a small adapter in a skill library, and a router
+          decides whether a new failure needs a new skill or can reuse one it already has. The <a href="#top">animation at the
+          top</a> walks through both paths.</p>
+      </div>
 
-  <footer class="footer">
-  <div class="container">
-    <div class="columns is-centered">
-      <div class="column is-8">
-        <div class="content">
+      <ol class="phases reveal">
+        <li class="phase">
+          <span class="phase-num">1</span>
+          <h3>Attempt</h3>
+          <p>The frozen base agent attempts the task with its tools. When a verifier flags a failure, the task, the failure
+            reason and the full trajectory are kept.</p>
+          <span class="phase-detail">wrong answer · no final answer · step or tool budget</span>
+        </li>
+        <li class="phase is-train">
+          <span class="phase-num">2</span>
+          <h3>Reflect</h3>
+          <p>The same model reviews its own trajectory with the verifier's feedback and writes practice examples that teach the
+            missing procedure: how to plan, use tools, verify and stop. It never writes the answer itself.</p>
+          <span class="phase-detail">up to 24 instruction → response examples</span>
+        </li>
+        <li class="phase is-train">
+          <span class="phase-num">3</span>
+          <h3>Distill</h3>
+          <p>The examples train a small LoRA adapter while the base model stays frozen. The adapter joins the skill library,
+            tagged with the failure that produced it.</p>
+          <span class="phase-detail">rank 16 · A from SVD of W, frozen · only B trained</span>
+        </li>
+        <li class="phase is-reuse">
+          <span class="phase-num">4</span>
+          <h3>Retry &amp; reuse</h3>
+          <p>The agent retries with the selected adapter and falls back to the clean base model if needed. Later failures can
+            retrieve a stored adapter instead of training a new one.</p>
+          <span class="phase-detail">similarity ≥ τ → reuse · adapter first, then base</span>
+        </li>
+      </ol>
+    </div>
+  </section>
 
-          <p>
-            This page was built using the <a href="https://github.com/eliahuhorwitz/Academic-project-page-template" target="_blank">Academic Project Page Template</a> which was adopted from the <a href="https://nerfies.github.io" target="_blank">Nerfies</a> project page.
-            You are free to borrow the source code of this website, we just ask that you link back to this page in the footer. <br> This website is licensed under a <a rel="license"  href="http://creativecommons.org/licenses/by-sa/4.0/" target="_blank">Creative
-            Commons Attribution-ShareAlike 4.0 International License</a>.
-          </p>
+  <!-- ============================== Results (mirrors paper §4) ============================== -->
+  <section class="section-sd is-tinted" id="results" aria-labelledby="results-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">03 · Results</p>
+        <h2 id="results-title">What the loop buys an agent</h2>
+        <p class="lede">Self-Direction repairs mistakes across research, tool-use, coding and browser tasks, keeps those repairs on
+          later encounters, and grows its skill library without disturbing what the agent already knows. Its skills also transfer
+          to unseen tasks. Main experiments use Qwen3.6-27B; the paper's appendix repeats the loop on Qwen3.8-27B and Qwen3.5-9B.</p>
+      </div>
 
+      <!-- 3.1 · paper §4.1 -->
+      <article class="finding reveal" aria-labelledby="f1-title">
+        <div class="finding-head">
+          <div class="finding-text">
+            <p class="finding-num">3.1<span>Paper §4.1</span></p>
+            <h3 id="f1-title">Repairs mistakes across task types</h3>
+            <p>Over three runs, Self-Direction raises mean success on Claw-Eval from 64.4% to 73.3% and on Terminal-Bench 2.1 from
+              51.7% to 65.5%; on GAIA the gain is 17.0 points. It beats in-context reflections and a Skills.md file, matches the base
+              agent's pass@6 on GAIA with only 2.10 rollouts per task, and narrows the gap to frontier agents. MiniWoB++ browser
+              tasks improve as well, from 42% to 54%.</p>
+          </div>
+          <dl class="finding-stats">
+            <div><dt>Terminal-Bench 2.1<span>51.7% → 65.5%</span></dt><dd>+13.8 pp</dd></div>
+            <div><dt>Claw-Eval<span>64.4% → 73.3%</span></dt><dd>+8.9 pp</dd></div>
+            <div><dt>GAIA<span>38.8% → 55.8%</span></dt><dd>+17.0 pp</dd></div>
+          </dl>
+        </div>
+        <div class="figpanel">
+          <div class="figtabs" role="tablist" aria-label="Figures for result 3.1">
+            <button type="button" role="tab">Terminal-Bench 2.1</button>
+            <button type="button" role="tab">Claw-Eval</button>
+            <button type="button" role="tab">GAIA</button>
+            <button type="button" role="tab">Rollouts</button>
+          </div>
+          <div class="figstage">
+            <figure class="figitem">
+              <a class="figimg" href="static/images/paper/fig1-terminal-bench.png" target="_blank" rel="noopener" aria-label="Open Figure 1 at full size">
+                <img src="static/images/paper/fig1-terminal-bench.png" width="957" height="884" loading="lazy"
+                     alt="Bar chart of Terminal-Bench 2.1 task success: base Qwen3.6-27B 51.7%, reflections in context 59.6%, Skills.md 56.2%, Self-Direction 65.5%. Pass@3 is 64.0% for the base agent and 74.2% for Self-Direction. Frontier references: GLM-5.1 58.6%, Gemini 3.1 Pro 65.6%, Opus 4.7 66.1%, GPT 5.6 Luna 75.7%.">
+              </a>
+              <figcaption><b>Figure 1 (right).</b> On Terminal-Bench 2.1, Self-Direction lifts performance from 51.7% to 65.5%,
+                outperforming existing baselines and frontier models. Frontier numbers from tbench.ai.</figcaption>
+            </figure>
+            <figure class="figitem">
+              <a class="figimg" href="static/images/paper/fig4-claw-eval.png" target="_blank" rel="noopener" aria-label="Open Figure 4 at full size">
+                <img src="static/images/paper/fig4-claw-eval.png" width="2021" height="937" loading="lazy"
+                     alt="Left: Claw-Eval task success: base 64.4%, reflections in context 70.0%, Skills.md 67.5%, Self-Direction 73.3%. Right: pass@3 rises from 73.9% to 80.7% and pass cubed from 51.6% to 64.6%, compared with frontier reference models.">
+              </a>
+              <figcaption><b>Figure 4.</b> <i>Left:</i> across three runs, Self-Direction improves mean success on Claw-Eval from
+                64.4% to 73.3% and outperforms the other baselines; error bars show one sample standard deviation. <i>Right:</i> it lets
+                a 27B model outperform several larger frontier models on pass@3 and pass³.</figcaption>
+            </figure>
+            <figure class="figitem">
+              <a class="figimg" href="static/images/paper/fig2-gaia.png" target="_blank" rel="noopener" aria-label="Open Figure 2 at full size">
+                <img src="static/images/paper/fig2-gaia.png" width="1862" height="878" loading="lazy"
+                     alt="GAIA task success by repair strategy: base 38.8%, base pass@3 49.7%, reflections in context 45.5%, Skills.md 53.3%, Self-Direction 55.8%.">
+              </a>
+              <figcaption><b>Figure 2.</b> Self-Direction outperforms alternative mistake-repair strategies on GAIA: 92 of 165 tasks
+                (55.8%), ahead of retrying (pass@3), reflections in context, and reflections accumulated in Skills.md. It recovers 28
+                mistakes, a 17.0-point gain over the initial base run.</figcaption>
+            </figure>
+            <figure class="figitem">
+              <a class="figimg" href="static/images/paper/fig10-rollouts.png" target="_blank" rel="noopener" aria-label="Open Figure 10 at full size">
+                <img src="static/images/paper/fig10-rollouts.png" width="2020" height="784" loading="lazy"
+                     alt="Accuracy against agent rollouts per task. Self-Direction reaches 55.8% on GAIA with 2.10 rollouts, matching base pass@6; 66.3% on Terminal-Bench 2.1 with 1.90 rollouts; and 75.8% on Claw-Eval with 1.54 rollouts, above base pass@3.">
+              </a>
+              <figcaption><b>Figure 10 (appendix).</b> Self-Direction reaches higher accuracy than base pass@k at a comparable number
+                of task-environment rollouts. Rollouts exclude reflection, synthesis and adapter training.</figcaption>
+            </figure>
+          </div>
+        </div>
+      </article>
+
+      <!-- 3.2 · paper §4.2 -->
+      <article class="finding reveal" aria-labelledby="f2-title">
+        <div class="finding-head">
+          <div class="finding-text">
+            <p class="finding-num">3.2<span>Paper §4.2</span></p>
+            <h3 id="f2-title">Learned skills prevent repeated mistakes</h3>
+            <p>Across 185 prior mistakes, Self-Direction nearly doubles the fraction solved in all three encounters, from 9.7% to
+              18.9%, with both methods allowed up to two rollouts per encounter. Once it repairs a mistake, 76.9% of repairs still
+              hold on a second encounter and 67.3% on a third, against 52.4% and 42.9% for base retrying. On Terminal-Bench 2.1 it
+              lifts every run and raises pass³ from 34.8% to 57.3%.</p>
+          </div>
+          <dl class="finding-stats">
+            <div><dt>solved in all 3 encounters<span>base retry 9.7%</span></dt><dd>18.9%</dd></div>
+            <div><dt>repairs kept on a 2nd encounter<span>base retry 52.4%</span></dt><dd>76.9%</dd></div>
+            <div><dt>Terminal-Bench 2.1 pass³<span>base 34.8%</span></dt><dd>57.3%</dd></div>
+          </dl>
+        </div>
+        <div class="figpanel">
+          <div class="figtabs" role="tablist" aria-label="Figures for result 3.2">
+            <button type="button" role="tab">Repeated encounters</button>
+            <button type="button" role="tab">Run-to-run reliability</button>
+          </div>
+          <div class="figstage">
+            <figure class="figitem is-table">
+              <div class="table-scroll">
+                <table class="data-table paper-table">
+                  <thead>
+                    <tr>
+                      <th scope="col" rowspan="2">Benchmark</th>
+                      <th scope="col" rowspan="2" class="num">Encounters <i>k</i></th>
+                      <th scope="colgroup" colspan="3" class="group">Mistakes avoided (pass<sup><i>k</i></sup>)</th>
+                      <th scope="colgroup" colspan="2" class="group">Corrections preserved</th>
+                    </tr>
+                    <tr>
+                      <th scope="col" class="num">Base retry</th>
+                      <th scope="col" class="num">Self-Direction</th>
+                      <th scope="col" class="num">Gain</th>
+                      <th scope="col" class="num">Base retry</th>
+                      <th scope="col" class="num">Self-Direction</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><th scope="row" rowspan="2">GAIA</th><td class="num">2</td><td class="num">9.9%</td><td class="num">21.8%</td><td class="num delta">+11.9 pp</td><td class="num">45.5%</td><td class="num">78.6%</td></tr>
+                    <tr><td class="num">3</td><td class="num">6.9%</td><td class="num">19.8%</td><td class="num delta">+12.9 pp</td><td class="num">31.8%</td><td class="num">71.4%</td></tr>
+                  </tbody>
+                  <tbody>
+                    <tr><th scope="row" rowspan="2">Terminal-Bench 2.1</th><td class="num">2</td><td class="num">13.6%</td><td class="num">20.5%</td><td class="num delta">+6.8 pp</td><td class="num">50.0%</td><td class="num">69.2%</td></tr>
+                    <tr><td class="num">3</td><td class="num">13.6%</td><td class="num">15.9%</td><td class="num delta">+2.3 pp</td><td class="num">50.0%</td><td class="num">53.8%</td></tr>
+                  </tbody>
+                  <tbody>
+                    <tr><th scope="row" rowspan="2">Claw-Eval</th><td class="num">2</td><td class="num">15.0%</td><td class="num">22.5%</td><td class="num delta">+7.5 pp</td><td class="num">75.0%</td><td class="num">81.8%</td></tr>
+                    <tr><td class="num">3</td><td class="num">12.5%</td><td class="num">20.0%</td><td class="num delta">+7.5 pp</td><td class="num">62.5%</td><td class="num">72.7%</td></tr>
+                  </tbody>
+                  <tbody class="is-total">
+                    <tr><th scope="row" rowspan="2">Total</th><td class="num">2</td><td class="num">11.9%</td><td class="num">21.6%</td><td class="num delta">+9.7 pp</td><td class="num">52.4%</td><td class="num">76.9%</td></tr>
+                    <tr><td class="num">3</td><td class="num">9.7%</td><td class="num">18.9%</td><td class="num delta">+9.2 pp</td><td class="num">42.9%</td><td class="num">67.3%</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <figcaption><b>Table 1.</b> Self-Direction prevents repaired mistakes from recurring. <i>Mistakes avoided</i> is the
+                fraction of prior mistakes solved in every encounter through <i>k</i>; <i>corrections preserved</i> is the fraction of
+                first-encounter successes that stay successful through <i>k</i>. Covers 101 GAIA, 44 Terminal-Bench 2.1 and 40
+                Claw-Eval prior mistakes.</figcaption>
+            </figure>
+            <figure class="figitem">
+              <a class="figimg" href="static/images/paper/fig5-terminal-bench-runs.png" target="_blank" rel="noopener" aria-label="Open Figure 5 at full size">
+                <img src="static/images/paper/fig5-terminal-bench-runs.png" width="1982" height="960" loading="lazy"
+                     alt="Left: Terminal-Bench 2.1 success in three runs. The base agent scores 50.6%, 56.2% and 48.3%; Self-Direction scores 65.2%, 65.2% and 66.3%, gains of 14.6, 9.0 and 18.0 points. Right: pass@3 rises from 64.0% to 74.2% and pass cubed from 34.8% to 57.3%.">
+              </a>
+              <figcaption><b>Figure 5.</b> Self-Direction normalizes the variable performance of the base agent on Terminal-Bench
+                2.1. <i>Left:</i> base performance ranges from 48.3% to 56.2% across identical runs; Self-Direction holds every run at
+                65–66%. <i>Right:</i> pass@3 rises from 64.0% to 74.2% and pass³ from 34.8% to 57.3%. Frontier scores are shown for
+                context; their harnesses differ.</figcaption>
+            </figure>
+          </div>
+        </div>
+      </article>
+
+      <!-- 3.3 · paper §4.3 -->
+      <article class="finding reveal" aria-labelledby="f3-title">
+        <div class="finding-head">
+          <div class="finding-text">
+            <p class="finding-num">3.3<span>Paper §4.3</span></p>
+            <h3 id="f3-title">New skills without losing old ones</h3>
+            <p>Every task first runs on the unchanged base model, and each skill is a separate frozen adapter, so learning cannot
+              overwrite what the agent already knows. The router loads a stored adapter only when the new task is similar enough to
+              the one it came from (cosine similarity ≥ τ). With one global τ = 0.55, a library holding every adapter from GAIA,
+              Claw-Eval and Terminal-Bench 2.1 never sends a task to another benchmark's adapter. Sweeping τ from 0.2 to 0.6, task
+              success holds for all but very permissive thresholds, below 0.30.</p>
+          </div>
+          <dl class="finding-stats">
+            <div><dt>tasks misrouted at τ = 0.55<span>all three benchmarks</span></dt><dd>0 / 370</dd></div>
+            <div><dt>task success preserved<span>GAIA, Terminal-Bench 2.1</span></dt><dd>τ ≥ 0.30</dd></div>
+            <div><dt>parameters per adapter<span>base model frozen</span></dt><dd>0.02%</dd></div>
+          </dl>
+        </div>
+        <div class="figpanel">
+          <div class="figtabs" role="tablist" aria-label="Figures for result 3.3">
+            <button type="button" role="tab">Safe thresholds</button>
+            <button type="button" role="tab">Threshold sweep</button>
+          </div>
+          <div class="figstage">
+            <figure class="figitem is-table">
+              <div class="table-scroll">
+                <table class="data-table paper-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Benchmark pair</th>
+                      <th scope="col" class="num">Max. similarity</th>
+                      <th scope="col" class="num">Safe τ</th>
+                      <th scope="col" class="num">Cross-domain retrievals</th>
+                      <th scope="col" class="num">Capabilities preserved</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><th scope="row">GAIA – TB 2.1</th><td class="num">0.546</td><td class="num">0.55</td><td class="num">0 / 145</td><td class="num"><span class="check" aria-hidden="true"></span><span class="visually-hidden">Yes</span></td></tr>
+                    <tr><th scope="row">GAIA – Claw-Eval</th><td class="num">0.415</td><td class="num">0.42</td><td class="num">0 / 141</td><td class="num"><span class="check" aria-hidden="true"></span><span class="visually-hidden">Yes</span></td></tr>
+                    <tr><th scope="row">TB 2.1 – Claw-Eval</th><td class="num">0.306</td><td class="num">0.31</td><td class="num">0 / 84</td><td class="num"><span class="check" aria-hidden="true"></span><span class="visually-hidden">Yes</span></td></tr>
+                  </tbody>
+                  <tbody class="is-total">
+                    <tr><th scope="row">All three, one global τ</th><td class="num">0.546</td><td class="num">0.55</td><td class="num">0 / 370</td><td class="num"><span class="check" aria-hidden="true"></span><span class="visually-hidden">Yes</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <figcaption><b>Table 7 (appendix).</b> Self-Direction learns new skills without disturbing existing ones. The safe
+                threshold is the smallest two-decimal cutoff above the largest similarity observed across the pair. At this threshold
+                no task retrieves an adapter from the other domain, in either direction, so an existing capability is never
+                overwritten or misapplied.</figcaption>
+            </figure>
+            <figure class="figitem">
+              <a class="figimg" href="static/images/paper/fig12-threshold-sweep.png" target="_blank" rel="noopener" aria-label="Open Figure 12 at full size">
+                <img src="static/images/paper/fig12-threshold-sweep.png" width="1822" height="771" loading="lazy"
+                     alt="Accuracy as the routing threshold varies from 0.20 to 0.45. For GAIA targets with Terminal-Bench and Claw-Eval adapters, and for Terminal-Bench targets with GAIA and Claw-Eval adapters, accuracy stays at the own-adapter baseline (20.8% and 22.7%) except at low thresholds below about 0.30, where it can rise or fall.">
+              </a>
+              <figcaption><b>Figure 12 (appendix).</b> Accuracy across router thresholds τ with a fixed library of cross-benchmark
+                skills. Failed GAIA (left) and Terminal-Bench 2.1 (right) tasks are retried with the top-matched adapter from the other
+                benchmarks. Existing capabilities are preserved except at thresholds below 0.30, where foreign adapters can help or
+                hurt.</figcaption>
+            </figure>
+          </div>
+        </div>
+      </article>
+
+      <!-- 3.4 · paper §4.4 -->
+      <article class="finding reveal" aria-labelledby="f4-title">
+        <div class="finding-head">
+          <div class="finding-text">
+            <p class="finding-num">3.4<span>Paper §4.4</span></p>
+            <h3 id="f4-title">Skills transfer to unseen tasks</h3>
+            <p>In a shuffled stream of all 165 GAIA tasks that starts from an empty library, a library capped at three adapters
+              (256 MB in total) raises task success from 36.4% to 52.7%. Skills learned on easier Level 1 GAIA tasks lift unseen
+              Level 2 tasks from 40.7% to 51.2% (base pass@2: 43%), and three Claw-Eval operations adapters solve half of the failed
+              workflow tasks, from 75.0% to 87.5%, without training on a single workflow task.</p>
+          </div>
+          <dl class="finding-stats">
+            <div><dt>GAIA stream<span>three-adapter library</span></dt><dd>+16.3 pp</dd></div>
+            <div><dt>GAIA Level 1 → Level 2<span>28 adapters</span></dt><dd>+10.5 pp</dd></div>
+            <div><dt>Claw-Eval ops → workflow<span>3 adapters</span></dt><dd>+12.5 pp</dd></div>
+          </dl>
+        </div>
+        <div class="figpanel">
+          <div class="figtabs" role="tablist" aria-label="Figures for result 3.4">
+            <button type="button" role="tab">Transfer</button>
+            <button type="button" role="tab">Library reuse</button>
+          </div>
+          <div class="figstage">
+            <figure class="figitem is-table">
+              <div class="table-scroll">
+                <table class="data-table paper-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Generalization</th>
+                      <th scope="col">Skills learned from</th>
+                      <th scope="col">Library</th>
+                      <th scope="col">Unseen evaluation tasks</th>
+                      <th scope="col" class="num">Improvement</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><th scope="row">Tasks in a continual stream<span class="cell-sub">GAIA</span></th><td>3 GAIA tasks</td><td>3 adapters</td><td>Remaining GAIA tasks (<i>n</i> = 162)</td><td class="num"><span class="delta">+16.3 pp</span><span class="cell-sub">36.4% → 52.7%</span></td></tr>
+                    <tr><th scope="row">Harder tasks<span class="cell-sub">GAIA</span></th><td>Easy Level 1 tasks</td><td>28 adapters</td><td>Harder Level 2 tasks (<i>n</i> = 86)</td><td class="num"><span class="delta">+10.47 pp</span><span class="cell-sub">40.7% → 51.2%</span></td></tr>
+                    <tr><th scope="row">Tasks across categories<span class="cell-sub">Claw-Eval</span></th><td>Operations tasks</td><td>3 adapters</td><td>Unseen workflow tasks (<i>n</i> = 24)</td><td class="num"><span class="delta">+12.5 pp</span><span class="cell-sub">75.0% → 87.5%</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <figcaption><b>Table 3.</b> Self-Direction transfers learned skills to unseen tasks. Stored skills generalize to new
+                tasks in a continual deployment stream, to harder tasks, and to related task categories.</figcaption>
+            </figure>
+            <figure class="figitem">
+              <a class="figimg" href="static/images/paper/fig11-library-reuse.png" target="_blank" rel="noopener" aria-label="Open Figure 11 at full size">
+                <img src="static/images/paper/fig11-library-reuse.png" width="2020" height="837" loading="lazy"
+                     alt="Left: adapter library size of 256, 383 and 895 MiB for 3, 6 and 12 trained adapters. Right: failures that avoided new training: 97.1%, 93.5% and 88.7%, with 18 of 102, 7 of 86 and 16 of 94 reuse wins.">
+              </a>
+              <figcaption><b>Figure 11 (appendix).</b> A compact skill library amortizes learning across a deployment-like GAIA
+                stream: existing skills avoid new adapter training for 88.7–97.1% of initial failures. Bars show the library's
+                storage; annotations report successful reuses.</figcaption>
+            </figure>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============================== Skills (paper Tables 14 and 15) ============================== -->
+  <section class="section-sd" id="skills" aria-labelledby="skills-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">04 · What gets learned</p>
+        <h2 id="skills-title">Skills are procedures, not answers</h2>
+        <p class="lede">Reflection is told to teach the process and never to copy the answer, so a stored adapter carries a procedure
+          that later tasks can reuse, across topics, modalities, difficulty levels and task categories.</p>
+      </div>
+
+      <h3 class="group-title reveal">Reuse in the shuffled GAIA stream<span>Paper, Table 14</span></h3>
+      <div class="xfer-grid reveal">
+        <article class="xfer">
+          <div class="xfer-route">
+            <p class="xfer-node is-source"><small>Source adapter · Level 3</small>ORCID publication aggregation</p>
+            <svg class="xfer-arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5L12 8l-3.5 3.5"/></svg>
+            <p class="xfer-node is-target"><small>Later target · Level 2</small>Wikipedia revision counting</p>
+          </div>
+          <p class="xfer-proc">Traverse a complete remote history, handle pagination, apply a date constraint, and verify completeness
+            before counting.</p>
+          <p class="xfer-outcome">Initial answer 2610 → adapter answer 2732, correct.</p>
+        </article>
+        <article class="xfer">
+          <div class="xfer-route">
+            <p class="xfer-node is-source"><small>Source adapter · Level 1</small>BBC Earth video lookup</p>
+            <svg class="xfer-arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5L12 8l-3.5 3.5"/></svg>
+            <p class="xfer-node is-target"><small>Later target · Level 1</small>Exact quotation from another video</p>
+          </div>
+          <p class="xfer-proc">Identify the correct video and extract a localized fact using descriptions, timestamps, comments, or
+            other supporting metadata.</p>
+          <p class="xfer-outcome">The initial run exhausted its step budget; the adapter returned the exact quotation.</p>
+        </article>
+        <article class="xfer">
+          <div class="xfer-route">
+            <p class="xfer-node is-source"><small>Source adapter · Level 1</small>Spreadsheet aggregation</p>
+            <svg class="xfer-arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5L12 8l-3.5 3.5"/></svg>
+            <p class="xfer-node is-target"><small>Later target · Level 2</small>Statistics over values extracted from an image</p>
+          </div>
+          <p class="xfer-proc">Extract structured values, inspect intermediate data, compute with a tool, verify the calculation, and
+            format only after validation.</p>
+          <p class="xfer-outcome">Initial answer 2.404 → adapter answer 17.056, correct.</p>
+        </article>
+        <article class="xfer">
+          <div class="xfer-route">
+            <p class="xfer-node is-source"><small>Source adapter · Level 2</small>Caesar-cipher decoding</p>
+            <svg class="xfer-arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5L12 8l-3.5 3.5"/></svg>
+            <p class="xfer-node is-target"><small>Later target · Level 1</small>Text-grid reconstruction</p>
+          </div>
+          <p class="xfer-proc">Apply a text transformation, check linguistic coherence, and preserve exact capitalization, spacing,
+            and output constraints.</p>
+          <p class="xfer-outcome">The initial run recovered the meaning but broke the format; the adapter returned the exact required
+            sentence.</p>
+        </article>
+      </div>
+
+      <h3 class="group-title reveal">Cross-category transfer on Claw-Eval<span>Paper, Table 15</span></h3>
+      <div class="xfer-grid is-three reveal">
+        <article class="xfer">
+          <div class="xfer-route">
+            <p class="xfer-node is-source"><small>Operations skill</small>Scheduled-task management</p>
+            <svg class="xfer-arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5L12 8l-3.5 3.5"/></svg>
+            <p class="xfer-node is-target"><small>Unseen workflow</small>Weekly meeting tracking</p>
+          </div>
+          <p class="xfer-proc">Collect status across multiple records, identify missing or incomplete actions, and produce a
+            structured progress report.</p>
+          <p class="xfer-outcome">Grader score 0.413 → 0.946</p>
+        </article>
+        <article class="xfer">
+          <div class="xfer-route">
+            <p class="xfer-node is-source"><small>Operations skill</small>Month-end reconciliation</p>
+            <svg class="xfer-arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5L12 8l-3.5 3.5"/></svg>
+            <p class="xfer-node is-target"><small>Unseen workflow</small>Task backtracking</p>
+          </div>
+          <p class="xfer-proc">Reconcile evidence across emails, task lists, and meeting notes; identify discrepancies and report
+            status, blockers, and next actions.</p>
+          <p class="xfer-outcome">Grader score 0.674 → 0.894</p>
+        </article>
+        <article class="xfer">
+          <div class="xfer-route">
+            <p class="xfer-node is-source"><small>Operations skill</small>Scheduled-task management</p>
+            <svg class="xfer-arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5L12 8l-3.5 3.5"/></svg>
+            <p class="xfer-node is-target"><small>Unseen workflow</small>Multi-project progress reporting</p>
+          </div>
+          <p class="xfer-proc">Aggregate task status across several projects, identify risks, and organize the results into separate
+            actionable reports.</p>
+          <p class="xfer-outcome">Grader score 0.586 → 0.890</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== Where it fits (paper §3.1 and Figure 2) ============================== -->
+  <section class="section-sd is-tinted" id="context" aria-labelledby="context-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">05 · Where it fits</p>
+        <h2 id="context-title">Where the lesson is stored</h2>
+        <p class="lede">The paper compares four ways to repair a mistake, which differ in where the lesson lives once the episode
+          ends. Each card shows GAIA task success; the base agent alone scores 38.8%.</p>
+      </div>
+      <div class="fit-grid reveal">
+        <div class="fit-card">
+          <span class="fit-where">Not stored</span>
+          <h3>Resampling</h3>
+          <p>Spend extra test-time compute on independent samples from the unchanged model. Nothing is kept, even within the
+            session.</p>
+          <p class="fit-score"><b>49.7%</b> GAIA, base pass@3</p>
+        </div>
+        <div class="fit-card">
+          <span class="fit-where">In the session's context</span>
+          <h3>Reflect in-context</h3>
+          <p>Put reflections or the failed trajectory into the prompt and retry. The lesson is forgotten once a new session
+            starts.</p>
+          <p class="fit-score"><b>45.5%</b> GAIA</p>
+        </div>
+        <div class="fit-card">
+          <span class="fit-where">In a shared text file</span>
+          <h3>Accumulate a Skills.md</h3>
+          <p>Distill reflections across sessions into one markdown file loaded into context. It avoids context overflow but falls
+            short of in-weight lessons.</p>
+          <p class="fit-score"><b>53.3%</b> GAIA</p>
+        </div>
+        <div class="fit-card is-ours">
+          <span class="fit-where">In the weights</span>
+          <h3>Self-Direction</h3>
+          <p>Distill each lesson into its own LoRA adapter, kept in a persistent, routable skill library. The base model stays
+            frozen.</p>
+          <p class="fit-score"><b>55.8%</b> GAIA</p>
         </div>
       </div>
     </div>
-  </div>
-</footer>
+  </section>
 
-<!-- Statcounter tracking code -->
-  
-<!-- You can add a tracker to track page visits by creating an account at statcounter.com -->
+  <!-- ============================== BibTeX ============================== -->
+  <section class="section-sd" id="bibtex" aria-labelledby="bibtex-title">
+    <div class="wrap reveal">
+      <div class="bibtex-header">
+        <div>
+          <p class="eyebrow">Cite</p>
+          <h2 id="bibtex-title">BibTeX</h2>
+        </div>
+        <button class="copy-bibtex-btn" type="button" onclick="copyBibTeX()" title="Copy BibTeX to clipboard">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg>
+          <span class="copy-text">Copy</span>
+        </button>
+      </div>
+      <!-- TODO: update the key, venue/arXiv ID and year once the paper is public -->
+      <pre id="bibtex-code"><code>@article{kansal2026selfdirection,
+  title   = {Don't Forget What You Just Learned: Self-Directed Repair
+             Makes Agent Skills Persist},
+  author  = {Kansal, Yuval and Ullrich, Karen and Kirichenko, Polina and
+             Kulikov, Ilia and Jha, Niraj K. and Pezeshki, Mohammad and
+             Ibrahim, Mark},
+  journal = {arXiv preprint},
+  year    = {2026}
+}</code></pre>
+    </div>
+  </section>
 
-    <!-- End of Statcounter Code -->
+  </main>
 
-  </body>
-  </html>
+  <footer class="footer-sd">
+    <div class="wrap">
+      <div class="footer-brand">
+        <svg class="brand-mark" aria-hidden="true"><use href="#fork-mark"/></svg>
+        <span>Self-Direction</span>
+      </div>
+      <p>
+        This page was built using the <a href="https://github.com/eliahuhorwitz/Academic-project-page-template" target="_blank" rel="noopener">Academic Project Page Template</a>,
+        which was adopted from the <a href="https://nerfies.github.io" target="_blank" rel="noopener">Nerfies</a> project page.
+        You are free to borrow the source code of this website; we just ask that you link back to this page in the footer.
+        This website is licensed under a <a rel="license noopener" href="http://creativecommons.org/licenses/by-sa/4.0/" target="_blank">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
+      </p>
+    </div>
+  </footer>
+
+  <button class="scroll-to-top" type="button" onclick="scrollToTop()" title="Scroll to top" aria-label="Scroll to top">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>
+  </button>
+
+</body>
+</html>

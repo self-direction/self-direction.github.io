@@ -1,0 +1,1394 @@
+<!doctype html>
+<!-- Self-Direction animation · 10-isometric-diorama · A tiny world: an isometric hover-robot fails a task, picks a route at a signposted fork, trains (blue) or reuses (green) a LoRA cartridge kept in a skill-vault tower, plugs it in, retries and ejects it · techniques: SVG 2:1 isometric projection, shaded polygon faces, per-frame topological depth sort, face-mapped decals, pure render(t) master clock, portrait follow-camera with a live <use> minimap · loop: 24s -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Self-Direction loop · isometric diorama</title>
+<style>
+  :root {
+    --ink: #253242; --ink-2: #334455; --muted: #767D85; --blue: #1685F8; --green: #16A16A;
+  }
+  html, body { margin: 0; height: 100%; background: #fff; overflow: hidden; }
+  html.bg-transparent, html.bg-transparent body { background: transparent; }
+  .stage { position: fixed; inset: 0; }
+  .stage svg { width: 100%; height: 100%; display: block; }
+  .controls { position: fixed; right: 10px; bottom: 10px; display: flex; gap: 6px; }
+  html.no-controls .controls { display: none; }
+  .controls button {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; padding: 0; color: var(--ink);
+    background: rgba(255, 255, 255, .92); border: 1px solid #D7DDE4; border-radius: 999px;
+    box-shadow: 0 1px 2px rgba(37, 50, 66, .08); cursor: pointer;
+  }
+  .controls button:hover { border-color: #AEB8C4; }
+  .controls button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .controls svg { width: 12px; height: 12px; display: block; pointer-events: none; }
+</style>
+</head>
+<body>
+<div class="stage" id="stage" role="img"
+     aria-label="Animated isometric diorama of the Self-Direction loop. A small robot agent attempts a task at a desk and fails (Mistake, error detected). At a fork signposted TRAIN and INFERENCE it must choose one route. Act one: no stored skill matches, so it takes the blue TRAIN route to a reflection lab with a lightbulb (Self-reflect, train a new adapter), where practice examples become a small adapter cartridge; the cartridge is stored in the Skill database tower (TRAIN + STORE), loaded (LOAD NEW) into the robot, and the retry succeeds (Retry, apply selected skill); the cartridge is then ejected so the base model stays clean. Act two: a related task fails, the stored skill matches, so the robot takes the green INFERENCE route to a reuse kiosk (Reuse skill, no training required), the existing cartridge is selected and loaded (SELECT + LOAD, LOAD EXISTING), and the retry succeeds again.">
+  <svg id="scene" viewBox="0 0 1700 850" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+</div>
+<div class="controls" id="controls">
+  <button id="btnReplay" type="button" aria-label="Replay from the start">
+    <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.2 6a3.8 3.8 0 1 0 1.2-2.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M1.6 1.4v2.6h2.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <button id="btnPlay" type="button" aria-label="Pause animation">
+    <svg viewBox="0 0 12 12" aria-hidden="true"><g id="icoPause"><rect x="2.4" y="1.8" width="2.6" height="8.4" rx=".8" fill="currentColor"/><rect x="7" y="1.8" width="2.6" height="8.4" rx=".8" fill="currentColor"/></g><path id="icoPlay" d="M3 1.8v8.4L10.2 6z" fill="currentColor" stroke="currentColor" stroke-width=".8" stroke-linejoin="round" style="display:none"/></svg>
+  </button>
+</div>
+<script>
+(() => {
+'use strict';
+
+/* =====================================================================
+   STORYBOARD  (one loop = 24 s, every pixel is a pure function of t)
+   ---------------------------------------------------------------------
+   ACT 1 · new skill (blue route)
+    0.0  robot works at the task desk            1.0  fails: warning sign pops
+    1.6  glides to the fork                      2.5  CHOOSE ONE: no match -> TRAIN
+    3.3  TRAIN branch to the reflection lab      4.4  bulb lights, practice cards,
+                                                      a LoRA cartridge is produced
+    6.4  TRAIN + STORE to the skill vault        7.4  cartridge stored (library 3 -> 4)
+    8.0  passes behind the vault                 8.6  LOAD NEW: cartridge plugged in
+    9.2  rides to the retry pad                 10.2  Retry succeeds (check + confetti)
+   11.0  cartridge ejected (clean base model)   11.5  robot beams back to the desk
+   ACT 2 · reuse (green route)
+   12.3  related task fails                     14.3  CHOOSE ONE: skill_04 >= tau -> INFERENCE
+   15.0  INFERENCE branch to the reuse kiosk    16.0  kiosk selects skill_04 (no training)
+   16.8  SELECT + LOAD, around the vault front  18.2  LOAD EXISTING: plugged in
+   18.8  rides to the retry pad                 19.8  Retry succeeds
+   20.6  cartridge ejected                      21.2  calm hold on the completed figure
+   23.3  quiet reset to the first frame (loop = 24 s)
+   ===================================================================== */
+
+/* ------------------------------ timing ------------------------------ */
+const DURATION = 24;          // seconds per loop
+const STATIC_T = 22.4;        // reduced motion / ?autoplay=0 frame (both routes lit)
+
+/* ------------------------------ palette ----------------------------- */
+const C = {
+  ink: '#253242', ink2: '#334455', muted: '#767D85', line: '#8B97A3',
+  blue: '#1685F8', blueTint: '#EDF6FF', green: '#16A16A', greenTint: '#E7F8F0',
+  amber: '#FFD478', cream: '#FFF9E7', warn: '#E8674B', warnTint: '#FFF1EA', white: '#FFFFFF'
+};
+const DARK = '#1E2A38';                 // shading target (deep ink)
+const NEUTRAL = '#F1F4F7';              // island / track neutrals (cool grey from ink)
+const FONT_SANS = '"Inter","Helvetica Neue",Helvetica,Arial,system-ui,sans-serif';
+const FONT_MONO = 'ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,"Liberation Mono",monospace';
+
+/* ------------------------------ helpers ----------------------------- */
+const clamp = (v, a = 0, b = 1) => (v < a ? a : v > b ? b : v);
+const lerp = (a, b, t) => a + (b - a) * t;
+const win = (t, t0, t1) => clamp((t - t0) / (t1 - t0));
+const eio = p => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+const eo = p => 1 - Math.pow(1 - p, 3);
+const ei = p => p * p * p;
+const eback = p => { const c1 = 1.9, c3 = c1 + 1; return p >= 1 ? 1 : 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2); };
+const bump = (t, t0, t1) => Math.sin(Math.PI * win(t, t0, t1));
+// envelope: rises over [a,b], holds, falls over [c,d]
+const env = (t, a, b, c, d) => Math.min(eo(win(t, a, b)), 1 - eio(win(t, c, d)));
+
+const hexRgb = h => (h.length === 4 ? [1, 2, 3].map(i => parseInt(h[i] + h[i], 16)) : [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)));
+const rgbHex = a => '#' + a.map(v => Math.round(clamp(v, 0, 255)).toString(16).padStart(2, '0')).join('');
+const mix = (a, b, t) => { const A = hexRgb(a), B = hexRgb(b); return rgbHex(A.map((v, i) => v + (B[i] - v) * t)); };
+const dk = (c, k) => mix(c, DARK, k);
+const lt = (c, k) => mix(c, '#FFFFFF', k);
+
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  if (attrs) for (const k in attrs) if (attrs[k] != null) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function set(e, attrs) { for (const k in attrs) e.setAttribute(k, attrs[k]); }
+const r1 = v => Math.round(v * 10) / 10;
+const r3 = v => Math.round(v * 1000) / 1000;
+const ptsStr = a => a.map(p => r1(p[0]) + ',' + r1(p[1])).join(' ');
+const norm = a => { const l = Math.hypot(a[0], a[1]) || 1; return [a[0] / l, a[1] / l]; };
+const add = (a, b, k = 1) => [a[0] + b[0] * k, a[1] + b[1] * k];
+
+/* --------------------------- iso projection -------------------------
+   world (x, y, z) in tiles  ->  screen units of the current viewBox
+   2:1 dimetric: x runs down-right, y runs down-left, z runs up.       */
+const ZK = 1.2, SQ2 = Math.SQRT2;
+let S = 64, OX = 0, OY = 0;
+const P = (x, y, z = 0) => [OX + (x - y) * S, OY + (x + y) * S * 0.5 - z * S * ZK];
+const Pp = (p, z = 0) => P(p[0], p[1], z);
+
+// vertical faces: visible when the outward normal points at the camera (+x,+y)
+const faceVis = (nx, ny) => nx + ny > 1e-3;
+// 0 = faces +y (screen-left, lit), 1 = faces +x (screen-right, shade)
+const faceK = (nx, ny) => clamp((nx - ny + 1) / 2);
+
+function poly(g, points, fill, extra) {
+  return el('polygon', Object.assign({
+    points: ptsStr(points), fill, stroke: fill, 'stroke-width': 0.7, 'stroke-linejoin': 'round'
+  }, extra || {}), g);
+}
+// axis-aligned box: draws the three visible faces
+function box(g, x0, y0, z0, dx, dy, dz, top, left, right) {
+  const x1 = x0 + dx, y1 = y0 + dy, z1 = z0 + dz;
+  left = left || dk(top, 0.07); right = right || dk(top, 0.16);
+  poly(g, [P(x0, y1, z1), P(x1, y1, z1), P(x1, y1, z0), P(x0, y1, z0)], left);
+  poly(g, [P(x1, y0, z1), P(x1, y1, z1), P(x1, y1, z0), P(x1, y0, z0)], right);
+  poly(g, [P(x0, y0, z1), P(x1, y0, z1), P(x1, y1, z1), P(x0, y1, z1)], top);
+}
+// affine matrix that maps face-local (s → screen-rightward along the face, t ↓) onto a vertical face
+function faceM(ox, oy, oz, ex, ey) {
+  const o = P(ox, oy, oz);
+  return `matrix(${r3((ex - ey) * S)} ${r3((ex + ey) * S / 2)} 0 ${r3(S * ZK)} ${r1(o[0])} ${r1(o[1])})`;
+}
+// +x face of an axis box (x = x1): origin top-left = (x1, y1, z1), runs along -y
+const faceMX = (x1, y1, z1) => faceM(x1, y1, z1, 0, -1);
+// +y face (y = y1): origin top-left = (x0, y1, z1), runs along +x
+const faceMY = (x0, y1, z1) => faceM(x0, y1, z1, 1, 0);
+// horizontal plane at height z, local (s along +x, t along +y)
+function topM(ox, oy, oz) {
+  const o = P(ox, oy, oz);
+  return `matrix(${r3(S)} ${r3(S / 2)} ${r3(-S)} ${r3(S / 2)} ${r1(o[0])} ${r1(o[1])})`;
+}
+
+let defs = null, gradN = 0;
+const gradCache = {};
+function hGrad(c0, c1, c2) {
+  const key = c0 + c1 + c2;
+  if (!gradCache[key]) {
+    const id = 'sdg' + (gradN++);
+    const g = el('linearGradient', { id, x1: 0, y1: 0, x2: 1, y2: 0 }, defs);
+    el('stop', { offset: 0, 'stop-color': c0 }, g);
+    el('stop', { offset: 0.55, 'stop-color': c1 }, g);
+    el('stop', { offset: 1, 'stop-color': c2 }, g);
+    gradCache[key] = `url(#${id})`;
+  }
+  return gradCache[key];
+}
+// vertical cylinder silhouette (side band incl. the front half of the base)
+function cylSide(cx, cy, z0, z1, r) {
+  const a = P(cx, cy, z0), b = P(cx, cy, z1), rx = SQ2 * r * S, ry = rx / 2;
+  return `M${r1(b[0] - rx)},${r1(b[1])}L${r1(a[0] - rx)},${r1(a[1])}` +
+    `A${r1(rx)},${r1(ry)} 0 0 0 ${r1(a[0] + rx)},${r1(a[1])}` +
+    `L${r1(b[0] + rx)},${r1(b[1])}A${r1(rx)},${r1(ry)} 0 0 1 ${r1(b[0] - rx)},${r1(b[1])}Z`;
+}
+function ell(g, cx, cy, z, r, attrs) {
+  const c = P(cx, cy, z), rx = SQ2 * r * S;
+  return el('ellipse', Object.assign({ cx: r1(c[0]), cy: r1(c[1]), rx: r1(rx), ry: r1(rx / 2) }, attrs || {}), g);
+}
+// front half of an ellipse (for rims / tier lines)
+function frontArc(cx, cy, z, r) {
+  const c = P(cx, cy, z), rx = SQ2 * r * S;
+  return `M${r1(c[0] - rx)},${r1(c[1])}A${r1(rx)},${r1(rx / 2)} 0 0 0 ${r1(c[0] + rx)},${r1(c[1])}`;
+}
+function cyl(g, cx, cy, z0, z1, r, top, side) {
+  side = side || top;
+  el('path', { d: cylSide(cx, cy, z0, z1, r), fill: hGrad(dk(side, 0.03), dk(side, 0.1), dk(side, 0.2)) }, g);
+  return ell(g, cx, cy, z1, r, { fill: top });
+}
+
+/* --------------------------- paths on the ground --------------------- */
+function mkPath(pts) {
+  const L = [0];
+  for (let i = 1; i < pts.length; i++) L.push(L[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  const len = L[L.length - 1];
+  return {
+    pts, L, len,
+    at(s) {
+      s = clamp(s, 0, len);
+      let lo = 0, hi = L.length - 1;
+      while (hi - lo > 1) { const m = (lo + hi) >> 1; if (L[m] <= s) lo = m; else hi = m; }
+      const sl = L[hi] - L[lo] || 1, k = (s - L[lo]) / sl, a = pts[lo], b = pts[hi];
+      return { x: a[0] + (b[0] - a[0]) * k, y: a[1] + (b[1] - a[1]) * k, tx: (b[0] - a[0]) / sl, ty: (b[1] - a[1]) / sl };
+    },
+    // arc length of the vertex closest to world point q
+    sOf(q) {
+      let best = 0, bd = 1e9;
+      for (let i = 0; i < pts.length; i++) { const d = Math.hypot(pts[i][0] - q[0], pts[i][1] - q[1]); if (d < bd) { bd = d; best = L[i]; } }
+      return best;
+    }
+  };
+}
+// polyline with rounded corners (quadratic fillets)
+function fillet(c, r) {
+  const out = [c[0]];
+  for (let i = 1; i < c.length - 1; i++) {
+    const A = c[i - 1], B = c[i], D = c[i + 1];
+    const d1 = norm([B[0] - A[0], B[1] - A[1]]), d2 = norm([D[0] - B[0], D[1] - B[1]]);
+    const l1 = Math.hypot(B[0] - A[0], B[1] - A[1]), l2 = Math.hypot(D[0] - B[0], D[1] - B[1]);
+    const cs = d1[0] * d2[0] + d1[1] * d2[1];
+    if (cs > 0.9995) { out.push(B); continue; }
+    const tl = Math.min(r * Math.tan(Math.acos(clamp(cs, -1, 1)) / 2), l1 * 0.5, l2 * 0.5);
+    const T1 = add(B, d1, -tl), T2 = add(B, d2, tl);
+    for (let k = 0; k <= 14; k++) {
+      const t = k / 14, a = (1 - t) * (1 - t), b = 2 * (1 - t) * t, e = t * t;
+      out.push([a * T1[0] + b * B[0] + e * T2[0], a * T1[1] + b * B[1] + e * T2[1]]);
+    }
+  }
+  out.push(c[c.length - 1]);
+  return out;
+}
+const arcPts = (cx, cy, r, a0, a1, n = 24) => {
+  const o = [];
+  for (let i = 0; i <= n; i++) { const a = lerp(a0, a1, i / n); o.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]); }
+  return o;
+};
+
+// raised walkway along a path: shaded side faces + top face
+function ribbon(g, path, w, zT, zB, cTop, cL, cR) {
+  const p = path.pts, n = p.length, hw = w / 2, nor = [];
+  for (let i = 0; i < n; i++) {
+    const a = p[Math.max(0, i - 1)], b = p[Math.min(n - 1, i + 1)];
+    const t = norm([b[0] - a[0], b[1] - a[1]]);
+    nor.push([-t[1], t[0]]);
+  }
+  const E1 = p.map((q, i) => add(q, nor[i], hw)), E2 = p.map((q, i) => add(q, nor[i], -hw));
+  const side = (E, sg) => {
+    let run = null, runK = -1;
+    const flush = () => {
+      if (run && run.length > 1) poly(g, [...run.map(q => Pp(q, zT)), ...run.slice().reverse().map(q => Pp(q, zB))], mix(cL, cR, runK));
+      run = null;
+    };
+    for (let i = 0; i < n - 1; i++) {
+      const o = norm([(nor[i][0] + nor[i + 1][0]) * sg, (nor[i][1] + nor[i + 1][1]) * sg]);
+      if (!faceVis(o[0], o[1])) { flush(); continue; }
+      const k = Math.round(faceK(o[0], o[1]) * 8) / 8;
+      if (run && k === runK) run.push(E[i + 1]); else { flush(); run = [E[i], E[i + 1]]; runK = k; }
+    }
+    flush();
+  };
+  side(E1, 1); side(E2, -1);
+  const cap = (i, d) => {
+    const t = norm(d);
+    if (faceVis(t[0], t[1])) poly(g, [Pp(E1[i], zT), Pp(E2[i], zT), Pp(E2[i], zB), Pp(E1[i], zB)], mix(cL, cR, faceK(t[0], t[1])));
+  };
+  cap(0, [p[0][0] - p[1][0], p[0][1] - p[1][1]]);
+  cap(n - 1, [p[n - 1][0] - p[n - 2][0], p[n - 1][1] - p[n - 2][1]]);
+  return poly(g, [...E1.map(q => Pp(q, zT)), ...E2.slice().reverse().map(q => Pp(q, zT))], cTop);
+}
+const screenD = (path, z) => 'M' + path.pts.map(q => { const s = Pp(q, z); return r1(s[0]) + ',' + r1(s[1]); }).join('L');
+
+// oriented (yawed) box / frustum: returns visible side faces + top, all projected
+function obox(cx, cy, z0, z1, f, s, hf0, hs0, hf1, hs1) {
+  const c = (a, b, z, hf, hs) => P(cx + f[0] * a * hf + s[0] * b * hs, cy + f[1] * a * hf + s[1] * b * hs, z);
+  const out = { faces: [], top: null };
+  const D = [
+    { id: 'front', n: f, A: [1, -1], B: [1, 1] },
+    { id: 'back', n: [-f[0], -f[1]], A: [-1, 1], B: [-1, -1] },
+    { id: 'left', n: s, A: [1, 1], B: [-1, 1] },
+    { id: 'right', n: [-s[0], -s[1]], A: [-1, -1], B: [1, -1] }
+  ];
+  for (const d of D) {
+    out.faces.push({
+      id: d.id, n: d.n, vis: faceVis(d.n[0], d.n[1]), k: faceK(d.n[0], d.n[1]),
+      pts: [c(d.A[0], d.A[1], z1, hf1, hs1), c(d.B[0], d.B[1], z1, hf1, hs1), c(d.B[0], d.B[1], z0, hf0, hs0), c(d.A[0], d.A[1], z0, hf0, hs0)]
+    });
+  }
+  out.top = [c(1, -1, z1, hf1, hs1), c(1, 1, z1, hf1, hs1), c(-1, 1, z1, hf1, hs1), c(-1, -1, z1, hf1, hs1)];
+  return out;
+}
+// matrix for the front (+f) face of an oriented box, local units = tiles, t ↓ from the top edge
+function ofaceM(cx, cy, zTop, f, s, hf, hs) {
+  const e = (s[0] - s[1]) > 0 ? s : [-s[0], -s[1]];
+  const o = [cx + f[0] * hf - e[0] * hs, cy + f[1] * hf - e[1] * hs];
+  return faceM(o[0], o[1], zTop, e[0], e[1]);
+}
+
+/* ------------------- flat icons (billboards, 100-unit box) ------------------- */
+const STROKE = { fill: 'none', stroke: C.ink2, 'stroke-width': 5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' };
+const A = (o, extra) => Object.assign({}, o, extra);
+
+function iconDoc(g) {
+  el('path', A(STROKE, { d: 'M-27,-37H2L25,-14V37H-27Z', fill: '#fff' }), g);
+  el('path', A(STROKE, { d: 'M2,-37V-14H25' }), g);
+  el('path', { d: 'M-16,-1H8M-16,10.5H5M-16,22H-2', stroke: C.line, 'stroke-width': 4.5, 'stroke-linecap': 'round' }, g);
+  el('path', { d: 'M20,1L40,35H0Z', fill: C.warnTint, stroke: C.warn, 'stroke-width': 4.5, 'stroke-linejoin': 'round' }, g);
+  el('path', { d: 'M20,12V23', stroke: C.warn, 'stroke-width': 4.5, 'stroke-linecap': 'round' }, g);
+  el('circle', { cx: 20, cy: 29.5, r: 2.7, fill: C.warn }, g);
+}
+function iconBulb(g) {
+  el('path', A(STROKE, { d: 'M-12,15C-12,7 -28,-1 -28,-14C-28,-29 -15,-38 0,-38C15,-38 28,-29 28,-14C28,-1 12,7 12,15Z', fill: C.blueTint }), g);
+  el('path', A(STROKE, { d: 'M-12,15H12V25H-12Z', fill: '#fff' }), g);
+  el('path', A(STROKE, { d: 'M-15,32.5H15', 'stroke-width': 5.5 }), g);
+  return el('path', { d: 'M-10,-15L-2,-7L12,-22', fill: 'none', stroke: C.blue, 'stroke-width': 6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', pathLength: 1 }, g);
+}
+function iconEye(g) {
+  const gs = A(STROKE, { stroke: C.green });
+  const spin = el('g', null, g);
+  el('path', A(STROKE, { d: 'M-30,-3C-21,-18 4,-25 21,-14' }), spin);
+  el('path', A(gs, { d: 'M21,-14L24,-29L34,-15' }), spin);
+  el('path', A(STROKE, { d: 'M30,3C21,18 -4,25 -21,14' }), spin);
+  el('path', A(gs, { d: 'M-21,14L-24,29L-34,15' }), spin);
+  el('circle', { cx: 0, cy: 0, r: 7.5, fill: C.greenTint, stroke: C.green, 'stroke-width': 4.5 }, g);
+  return spin;
+}
+function iconCheckBadge(g, r) {
+  el('circle', { cx: 0, cy: 0, r, fill: C.green }, g);
+  el('circle', { cx: 0, cy: 0, r: r - 4, fill: 'none', stroke: '#fff', 'stroke-width': 2, opacity: 0.35 }, g);
+  return el('path', { d: `M${-r * .42},${r * .02}L${-r * .12},${r * .32}L${r * .45},${-r * .3}`, fill: 'none', stroke: '#fff', 'stroke-width': r * 0.2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', pathLength: 1 }, g);
+}
+function iconCard(g) {
+  el('rect', { x: -21, y: -15, width: 42, height: 30, rx: 5, fill: '#fff', stroke: C.ink2, 'stroke-width': 2.6 }, g);
+  el('path', { d: 'M-13,-6H5', stroke: C.blue, 'stroke-width': 3.4, 'stroke-linecap': 'round' }, g);
+  el('path', { d: 'M-13,2H13M-13,9H7', stroke: C.line, 'stroke-width': 3, 'stroke-linecap': 'round' }, g);
+}
+// small arrow glyph (screen direction dx, dy), drawn as a path
+function arrowGlyph(g, x, y, dx, dy, size, color) {
+  const d = norm([dx, dy]), n = [-d[1], d[0]], h = size / 2;
+  const tip = [x + d[0] * h, y + d[1] * h], tail = [x - d[0] * h, y - d[1] * h];
+  const w1 = [tip[0] - d[0] * h * 0.9 + n[0] * h * 0.75, tip[1] - d[1] * h * 0.9 + n[1] * h * 0.75];
+  const w2 = [tip[0] - d[0] * h * 0.9 - n[0] * h * 0.75, tip[1] - d[1] * h * 0.9 - n[1] * h * 0.75];
+  el('path', {
+    d: `M${r1(tail[0])},${r1(tail[1])}L${r1(tip[0])},${r1(tip[1])}M${r1(w1[0])},${r1(w1[1])}L${r1(tip[0])},${r1(tip[1])}L${r1(w2[0])},${r1(w2[1])}`,
+    fill: 'none', stroke: color, 'stroke-width': size * 0.17, 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+  }, g);
+}
+
+/* ------------------------------ typography ------------------------------ */
+const HALO = { stroke: '#fff', 'stroke-width': 7, 'stroke-linejoin': 'round', 'paint-order': 'stroke' };
+function txt(g, x, y, s, o) {
+  const t = el('text', A({ x: r1(x), y: r1(y) }, o), g);
+  t.textContent = s;
+  return t;
+}
+const monoW = (s, size) => s.length * size * 0.682;     // estimate (0.602em glyph + 0.08em tracking)
+function mono(g, x, y, s, color, size, anchor, halo) {
+  return txt(g, x, y, s, A(halo === false ? {} : HALO, {
+    'text-anchor': anchor || 'middle', 'font-family': FONT_MONO, 'font-weight': 700,
+    'font-size': size, fill: color, style: 'letter-spacing:.08em'
+  }));
+}
+function title(g, x, y, head, sub, color, size, anchor) {
+  const grp = el('g', null, g);
+  txt(grp, x, y, head, A(HALO, { 'text-anchor': anchor || 'middle', 'font-family': FONT_SANS, 'font-weight': 700, 'font-size': size, fill: color, 'stroke-width': 8 }));
+  txt(grp, x, y + size * 0.92, sub, A(HALO, { 'text-anchor': anchor || 'middle', 'font-family': FONT_SANS, 'font-weight': 400, 'font-size': Math.round(size * 0.64), fill: C.muted }));
+  return grp;
+}
+// pin: thin leader from a tag to a world anchor, ending in a small ring
+function pin(g, x1, y1, x2, y2, color) {
+  const grp = el('g', null, g);
+  el('path', { d: `M${r1(x1)},${r1(y1)}L${r1(x2)},${r1(y2)}`, stroke: color || C.line, 'stroke-width': 1.6, 'stroke-dasharray': '1 4.2', 'stroke-linecap': 'round', opacity: 0.9 }, grp);
+  el('circle', { cx: r1(x2), cy: r1(y2), r: 4.2, fill: '#fff', stroke: color || C.ink2, 'stroke-width': 2.2 }, grp);
+  return grp;
+}
+// pill: rounded label with optional arrow glyph (sign boards, TRAIN / INFERENCE)
+function pill(g, x, y, s, color, size, arrow) {
+  const grp = el('g', null, g);
+  const tw = monoW(s, size), padX = size * 0.75, aw = arrow ? size * 1.15 : 0;
+  const w = tw + padX * 2 + aw, h = size * 1.75;
+  el('rect', { x: r1(x - w / 2), y: r1(y - h / 2), width: r1(w), height: r1(h), rx: r1(h / 2), fill: color }, grp);
+  mono(grp, x - aw / 2 + size * 0.04, y + size * 0.36, s, '#fff', size, 'middle', false);
+  if (arrow) arrowGlyph(grp, x + w / 2 - padX * 0.55 - aw / 2, y, arrow[0], arrow[1], size * 0.95, '#fff');
+  return { g: grp, w, h };
+}
+
+/* ------------------------------ world constants ------------------------------ */
+const TW = 0.64;            // track width (tiles)
+const TT = 0.18;            // track top above island tops
+const IT = 0.42;            // island slab thickness
+const RT = 0.9;             // vault tower radius
+const RP = 1.9;             // vault plinth radius
+const RS = RP + 0.45;       // robot stop distance from the vault centre
+const TIER = 0.5;           // tower tier height
+const LID = 0.13;           // tower lid thickness
+const TOWER_TOP = TT + 3 * TIER + LID;
+
+// One world, built from a fork F, a TRAIN direction dT (up-right, -y) and an
+// INFERENCE direction dI (+x). Portrait viewports re-frame it with a camera.
+const LAYOUTS = {
+  land: { vb: [1700, 850], S: 60, dT: [0, -1], b: 4.3, c: 2.5, a: 2.6, a2: 2.5, oy: 506 }
+};
+
+const ROUTE = {   // track top / side / stripe colours per route
+  neutral: { top: '#EEF2F6', dim: '#CBD3DC', lit: C.ink2 },
+  blue: { top: C.blueTint, dim: mix(C.blueTint, C.blue, 0.3), lit: C.blue },
+  green: { top: C.greenTint, dim: mix(C.greenTint, C.green, 0.3), lit: C.green }
+};
+
+let G = null;        // current scene: nodes, paths, refs, sprites
+
+function cubicPts(p0, p1, p2, p3, n = 32) {
+  const o = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n, a = (1 - t) ** 3, b = 3 * (1 - t) ** 2 * t, c = 3 * (1 - t) * t * t, d = t ** 3;
+    o.push([a * p0[0] + b * p1[0] + c * p2[0] + d * p3[0], a * p0[1] + b * p1[1] + c * p2[1] + d * p3[1]]);
+  }
+  return o;
+}
+function subPts(path, s0, s1) {
+  const o = [], a = path.at(s0);
+  o.push([a.x, a.y]);
+  for (let i = 0; i < path.pts.length; i++) if (path.L[i] > s0 + 1e-6 && path.L[i] < s1 - 1e-6) o.push(path.pts[i]);
+  const b = path.at(s1);
+  o.push([b.x, b.y]);
+  return o;
+}
+const joinPts = (...lists) => lists.reduce((acc, l) => acc.concat(acc.length ? l.slice(1) : l), []);
+
+function buildScene() {
+  const mode = 'land', cfg = LAYOUTS[mode], port = false;
+  const svg = document.getElementById('scene');
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  for (const k in gradCache) delete gradCache[k];
+  svg.setAttribute('viewBox', `0 0 ${cfg.vb[0]} ${cfg.vb[1]}`);
+  S = cfg.S;
+  defs = el('defs', null, svg);
+
+  /* ---------- nodes (world xy, tiles) ---------- */
+  const dT = cfg.dT, dI = [1, 0], bis = norm(add(dT, dI)), BACK = norm([-1, -1]);
+  const F = [0, 0], Lc = add(F, dT, cfg.b), Kc = add(F, dI, cfg.b), DB = add(Lc, dI, cfg.b);
+  const Nc = add(DB, dT, cfg.c), Ec = add(DB, dI, cfg.c), M = add(Nc, dI, cfg.c);
+  const DESK = add(F, bis, -cfg.a), RETRY = add(M, bis, cfg.a2);
+  const deskC = add(DESK, [-1, 0], 1.12);
+  const labC = add(Lc, BACK, 1.45), kioskC = add(Kc, BACK, 1.38), postP = add(F, BACK, 0.92);
+
+  /* ---------- camera: centre the diorama ---------- */
+  const uOf = p => p[0] - p[1];
+  const umin = Math.min(uOf(DESK) - 2.7, uOf(Lc) - 2.5), umax = Math.max(uOf(RETRY) + 1.7, uOf(Kc) + 2.5);
+  OX = cfg.vb[0] / 2 - ((umin + umax) / 2) * S;
+  OY = cfg.oy;
+
+  /* ---------- layers ---------- */
+  const filt = el('filter', { id: 'sdBlur', x: '-20%', y: '-40%', width: '140%', height: '180%' }, defs);
+  el('feGaussianBlur', { stdDeviation: 9 }, filt);
+  const glowF = el('filter', { id: 'sdGlow', x: '-60%', y: '-60%', width: '220%', height: '220%' }, defs);
+  el('feGaussianBlur', { stdDeviation: 6 }, glowF);
+  const gView = el('g', { id: 'sdView' }, svg);           // camera mask (portrait)
+  const gWorld = el('g', { id: 'sdWorld' }, gView);       // camera transform (portrait)
+  const gCore = el('g', { id: 'sdCore' }, gWorld);        // everything but labels (re-used by the minimap)
+  const gShadow = el('g', { filter: 'url(#sdBlur)', opacity: 0.11 }, gCore);
+  const gFloor = el('g', null, gCore);
+  const gSort = el('g', null, gCore);
+  const gFx = el('g', null, gCore);
+  const gLab = el('g', null, gWorld);
+  const gMini = el('g', { display: 'none' }, svg);
+  const gHud = el('g', null, svg);
+
+  G = { mode, port, cfg, dT, dI, bis, F, L: Lc, K: Kc, DB, N: Nc, E: Ec, M, DESK, RETRY, deskC, labC, kioskC, postP,
+    gFloor, gSort, gFx, gLab, gView, gWorld, gMini, gHud, sprites: [], refs: {}, pieces: {}, order: [] };
+  const R = G.refs;
+
+  /* ---------- islands ---------- */
+  const shadowAt = (pts) => el('polygon', { points: ptsStr(pts.map(q => P(q[0] + 0.25, q[1] + 0.25, -1.5))), fill: C.ink }, gShadow);
+  const sqIsland = (c, h, top) => {
+    shadowAt([[c[0] - h, c[1] - h], [c[0] + h, c[1] - h], [c[0] + h, c[1] + h], [c[0] - h, c[1] + h]]);
+    box(gFloor, c[0] - h, c[1] - h, -IT, 2 * h, 2 * h, IT, top, dk(top, 0.06), dk(top, 0.14));
+    el('polyline', { points: ptsStr([P(c[0] - h, c[1] + h, 0), P(c[0] + h, c[1] + h, 0), P(c[0] + h, c[1] - h, 0)]), fill: 'none', stroke: '#fff', 'stroke-width': 1.6, opacity: 0.95 }, gFloor);
+  };
+  const rdIsland = (c, r, top, zTop = 0, thick = IT) => {
+    const sp = arcPts(c[0] + 0.25, c[1] + 0.25, r, 0, Math.PI * 2, 28).map(q => P(q[0], q[1], -1.5));
+    el('polygon', { points: ptsStr(sp), fill: C.ink }, gShadow);
+    el('path', { d: cylSide(c[0], c[1], zTop - thick, zTop, r), fill: hGrad(dk(top, 0.05), dk(top, 0.1), dk(top, 0.17)) }, gFloor);
+    const e = ell(gFloor, c[0], c[1], zTop, r, { fill: top });
+    el('path', { d: frontArc(c[0], c[1], zTop, r), fill: 'none', stroke: '#fff', 'stroke-width': 1.6, opacity: 0.9 }, gFloor);
+    return e;
+  };
+  sqIsland(add(DESK, [-0.55, 0]), 1.05, NEUTRAL);
+  rdIsland(F, 1.05, NEUTRAL);
+  sqIsland(add(Lc, BACK, 0.85), 1.22, lt(C.blueTint, 0.25));
+  sqIsland(add(Kc, BACK, 0.8), 1.18, lt(C.greenTint, 0.2));
+  rdIsland(M, 0.85, NEUTRAL);
+  rdIsland(RETRY, 1.15, NEUTRAL);
+  rdIsland(DB, RP, C.cream, TT, IT + TT);
+
+  /* ---------- track pieces ---------- */
+  const FIL = 0.95;
+  const P_ = {
+    entry: mkPath([DESK, F]),
+    train: mkPath(fillet([F, Lc, add(DB, dI, -RP + 0.05)], FIL)),
+    infer: mkPath(fillet([F, Kc, add(DB, dT, -RP + 0.05)], FIL)),
+    nw: mkPath(fillet([add(DB, dT, RP - 0.05), Nc, M], FIL)),
+    ex: mkPath(fillet([add(DB, dI, RP - 0.05), Ec, M], FIL)),
+    exit: mkPath([M, RETRY])
+  };
+  // routes around the vault tower (cubic, tangent to both tracks)
+  const vIn = (d) => add(DB, d, -RS), vOut = (d) => add(DB, d, RS);
+  P_.vb = mkPath(cubicPts(vIn(dI), add(vIn(dI), dI, 0.5), add(vOut(dT), dT, -0.5), vOut(dT)));
+  P_.vg = mkPath(cubicPts(vIn(dT), add(vIn(dT), dT, 0.5), add(vOut(dI), dI, -0.5), vOut(dI)));
+  G.paths = P_;
+  const routeOf = { entry: 'neutral', exit: 'neutral', train: 'blue', nw: 'blue', vb: 'blue', infer: 'green', ex: 'green', vg: 'green' };
+
+  // ribbons (bridges + walkways)
+  for (const k of ['entry', 'train', 'infer', 'nw', 'ex', 'exit']) {
+    const rc = ROUTE[routeOf[k]];
+    ribbon(gFloor, P_[k], TW, TT, -0.04, rc.top, dk(rc.top, 0.1), dk(rc.top, 0.2));
+  }
+  // centre stripes: dim base + lit overlay (dash progress)
+  const stripeW = 0.2 * S;
+  for (const k of ['entry', 'train', 'infer', 'nw', 'ex', 'exit', 'vb', 'vg']) {
+    const rc = ROUTE[routeOf[k]], d = screenD(P_[k], TT + 0.002);
+    const dim = el('path', { d, fill: 'none', stroke: rc.dim, 'stroke-width': r1(stripeW), 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, gFloor);
+    const lit = el('path', { d, fill: 'none', stroke: rc.lit, 'stroke-width': r1(stripeW), 'stroke-linecap': 'round', 'stroke-linejoin': 'round', pathLength: 1, 'stroke-dasharray': '1 1.02', 'stroke-dashoffset': 1 }, gFloor);
+    if (k === 'vb' || k === 'vg') { dim.setAttribute('opacity', 0); }
+    G.pieces[k] = { dim, lit, vault: k === 'vb' || k === 'vg' };
+  }
+  // chevrons painted on the stripe, pointing along the flow
+  const chev = (path, s, color) => {
+    const a = path.at(s), t = [a.tx, a.ty], n = [-a.ty, a.tx], z = TT + 0.004, sz = 0.2;
+    const tip = [a.x + t[0] * sz * 0.5, a.y + t[1] * sz * 0.5];
+    const w1 = [a.x - t[0] * sz * 0.5 + n[0] * sz * 0.75, a.y - t[1] * sz * 0.5 + n[1] * sz * 0.75];
+    const w2 = [a.x - t[0] * sz * 0.5 - n[0] * sz * 0.75, a.y - t[1] * sz * 0.5 - n[1] * sz * 0.75];
+    el('polyline', { points: ptsStr([Pp(w1, z), Pp(tip, z), Pp(w2, z)]), fill: 'none', stroke: color, 'stroke-width': 3.2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, gFloor);
+  };
+  chev(P_.entry, P_.entry.len - 1.25, '#fff');
+  chev(P_.train, P_.train.sOf(Lc) - 1.3, '#fff');
+  chev(P_.train, P_.train.len - 0.9, '#fff');
+  chev(P_.infer, P_.infer.sOf(Kc) - 1.3, '#fff');
+  chev(P_.infer, P_.infer.len - 0.9, '#fff');
+  chev(P_.nw, P_.nw.len - 1.0, '#fff');
+  chev(P_.ex, P_.ex.len - 1.0, '#fff');
+  chev(P_.exit, P_.exit.len - 1.15, '#fff');
+
+  // junction disks (fork + merge), like the figure's junction circles
+  const junction = (c) => {
+    el('path', { d: cylSide(c[0], c[1], TT, TT + 0.05, 0.4), fill: dk('#FFFFFF', 0.16) }, gFloor);
+    const top = ell(gFloor, c[0], c[1], TT + 0.05, 0.4, { fill: '#fff', stroke: C.ink2, 'stroke-width': 3.2 });
+    ell(gFloor, c[0], c[1], TT + 0.05, 0.12, { fill: C.ink2 });
+    const pulse = ell(gFloor, c[0], c[1], TT + 0.05, 0.4, { fill: 'none', stroke: C.ink2, 'stroke-width': 2.4, opacity: 0 });
+    return { top, pulse, c };
+  };
+  R.jF = junction(F);
+  R.jM = junction(M);
+  // retry pad
+  el('path', { d: cylSide(RETRY[0], RETRY[1], 0, TT + 0.02, 0.62), fill: hGrad('#F4F7FA', '#E6EBF0', '#D3DAE2') }, gFloor);
+  ell(gFloor, RETRY[0], RETRY[1], TT + 0.02, 0.62, { fill: '#fff' });
+  R.padRing = ell(gFloor, RETRY[0], RETRY[1], TT + 0.02, 0.5, { fill: 'none', stroke: '#C9D1DA', 'stroke-width': 3.2 });
+  R.padGlow = ell(gFloor, RETRY[0], RETRY[1], TT + 0.02, 0.5, { fill: C.greenTint, stroke: C.green, 'stroke-width': 3.6, opacity: 0 });
+
+  buildStations();
+  buildRobot();
+  buildFx();
+  buildLabels();
+  buildRobotPlan();
+  G.order = [];
+}
+
+/* ------------------------------ sprites ------------------------------ */
+function sprite(b, z1) {   // b = [x0, x1, y0, y1]
+  const g = el('g', null, G.gSort);
+  const sp = { g, b, z1: z1 || 1 };
+  G.sprites.push(sp);
+  return sp;
+}
+
+/* ------------------------------ stations ------------------------------ */
+function billboard(parent, x, y, k) { return el('g', { transform: `translate(${r1(x)} ${r1(y)}) scale(${r3(k)})` }, parent); }
+
+function buildStations() {
+  const R = G.refs;
+
+  /* ---- task desk (Mistake) ---- */
+  {
+    const c = G.deskC, g = sprite([c[0] - 0.32, c[0] + 0.32, c[1] - 0.6, c[1] + 0.6]).g;
+    const x0 = c[0] - 0.3, y0 = c[1] - 0.58, w = 0.6, d = 1.16, leg = '#D9DFE6';
+    box(g, x0 + 0.04, y0 + 0.04, 0, 0.07, d - 0.08, 0.43, leg);
+    box(g, x0 + 0.04, y0 + 0.04, 0, w - 0.08, 0.07, 0.43, leg);
+    box(g, x0 + 0.04, y0 + d - 0.11, 0, w - 0.08, 0.07, 0.43, leg);
+    box(g, x0, y0, 0.43, w, d, 0.07, '#FFFFFF', '#E8EDF2', '#D3DAE2');
+    box(g, c[0] + 0.04, c[1] - 0.3, 0.5, 0.18, 0.6, 0.03, '#E6EBF0');                 // keyboard
+    box(g, c[0] - 0.27, c[1] - 0.14, 0.5, 0.2, 0.28, 0.025, '#C9D1DA');               // stand base
+    box(g, c[0] - 0.2, c[1] - 0.035, 0.5, 0.05, 0.07, 0.14, '#C9D1DA');               // stand
+    const mx1 = c[0] - 0.1, my0 = c[1] - 0.46, my1 = c[1] + 0.46, mz0 = 0.63, mz1 = 1.16;
+    box(g, mx1 - 0.08, my0, mz0, 0.08, my1 - my0, mz1 - mz0, lt(C.ink2, 0.25), C.ink2, dk(C.ink2, 0.2));
+    const scr = el('g', { transform: faceMX(mx1, my1, mz1) }, g);
+    R.deskBg = el('rect', { x: 0.035, y: 0.035, width: 0.85, height: 0.46, rx: 0.025, fill: '#F7FAFD' }, scr);
+    R.deskBar = el('rect', { x: 0.035, y: 0.035, width: 0.85, height: 0.075, fill: C.blue }, scr);
+    R.deskLines = [0.5, 0.64, 0.4, 0.56].map((lw, i) =>
+      el('rect', { x: 0.11, y: 0.17 + i * 0.075, width: lw, height: 0.032, rx: 0.016, fill: C.line, 'data-w': lw }, scr));
+    R.deskX = el('path', { d: 'M0.56,0.2L0.74,0.4M0.74,0.2L0.56,0.4', fill: 'none', stroke: C.warn, 'stroke-width': 3.4, 'stroke-linecap': 'round', 'vector-effect': 'non-scaling-stroke', opacity: 0 }, scr);
+  }
+
+  /* ---- fork signpost (CHOOSE ONE) ---- */
+  {
+    const p = G.postP, g = sprite([p[0] - 0.05, p[0] + 0.05, p[1] - 0.05, p[1] + 0.05]).g;
+    box(g, p[0] - 0.045, p[1] - 0.045, 0, 0.09, 0.09, 1.62, '#B7C1CC', '#97A3AF', '#7F8C99');
+    const sz = G.port ? 17 : 18;
+    const dirT = [G.dT[0] - G.dT[1], (G.dT[0] + G.dT[1]) / 2], dirI = [1, 0.5];
+    const top = P(p[0], p[1], 1.5), low = P(p[0], p[1], 1.1);
+    const mk = (text, color, arrow, at, side) => {
+      const tmp = el('g', null, g);
+      const pl = pill(tmp, 0, 0, text, color, sz, arrow);
+      g.removeChild(tmp);
+      const cx = at[0] + side * (pl.w / 2 - 12);
+      const holder = el('g', { transform: `translate(${r1(cx)} ${r1(at[1])})` }, g);
+      const inner = el('g', null, holder);
+      inner.appendChild(pl.g);
+      return { holder, inner, w: pl.w };
+    };
+    R.boardT = mk('TRAIN', C.blue, dirT, top, G.port ? -1 : 1);
+    R.boardI = mk('INFERENCE', C.green, dirI, low, 1);
+  }
+
+  /* ---- reflection lab (Self-reflect) ---- */
+  {
+    const c = G.labC, h = 0.56, H = 0.95, g = sprite([c[0] - h, c[0] + h, c[1] - h, c[1] + h]).g;
+    const x0 = c[0] - h, y0 = c[1] - h, x1 = c[0] + h, y1 = c[1] + h;
+    box(g, x0, y0, 0, 2 * h, 2 * h, H, '#FFFFFF', '#EEF3F9', '#D8E2EE');
+    poly(g, [P(x0, y1, H - 0.1), P(x1, y1, H - 0.1), P(x1, y1, H - 0.2), P(x0, y1, H - 0.2)], mix(C.blue, '#fff', 0.1));
+    poly(g, [P(x1, y0, H - 0.1), P(x1, y1, H - 0.1), P(x1, y1, H - 0.2), P(x1, y0, H - 0.2)], dk(C.blue, 0.12));
+    // door (+y face) and windows (+x face)
+    const fy = el('g', { transform: faceMY(x0, y1, H) }, g);
+    el('rect', { x: 0.66, y: 0.42, width: 0.3, height: 0.53, rx: 0.03, fill: mix(C.blue, C.ink2, 0.35) }, fy);
+    el('rect', { x: 0.14, y: 0.36, width: 0.36, height: 0.26, rx: 0.03, fill: C.blueTint, stroke: C.ink2, 'stroke-width': 1.6, 'vector-effect': 'non-scaling-stroke' }, fy);
+    const fx = el('g', { transform: faceMX(x1, y1, H) }, g);
+    for (const s0 of [0.14, 0.62]) el('rect', { x: s0, y: 0.36, width: 0.36, height: 0.26, rx: 0.03, fill: C.blueTint, stroke: C.ink2, 'stroke-width': 1.6, 'vector-effect': 'non-scaling-stroke' }, fx);
+    // roof hatch + pedestal
+    box(g, c[0] - 0.42, c[1] - 0.42, H, 0.3, 0.3, 0.05, '#E3EAF2');
+    cyl(g, c[0] + 0.05, c[1] + 0.05, H, H + 0.1, 0.2, '#E9EEF3', '#C3CCD6');
+    const bp = P(c[0] + 0.05, c[1] + 0.05, H + 0.1);
+    const k = 0.0118 * S;
+    R.bulbGlow = el('circle', { cx: r1(bp[0]), cy: r1(bp[1] - 46 * k), r: r1(50 * k), fill: C.blue, opacity: 0, filter: 'url(#sdGlow)' }, g);
+    const bb = billboard(g, bp[0], bp[1] - 36 * k, k);
+    R.bulbCheck = iconBulb(bb);
+    R.bulbAt = [bp[0], bp[1] - 46 * k];
+    R.labDoor = P(x0 + 0.81, y1, 0.3);
+  }
+
+  /* ---- reuse kiosk (Reuse skill) ---- */
+  {
+    const c = G.kioskC, h = 0.44, H = 0.7, g = sprite([c[0] - h, c[0] + h, c[1] - h, c[1] + h]).g;
+    const x0 = c[0] - h, y0 = c[1] - h, x1 = c[0] + h, y1 = c[1] + h;
+    box(g, x0, y0, 0, 2 * h, 2 * h, H, '#FFFFFF', '#E6F5EE', '#CDE8DC');
+    // awning
+    box(g, x0 - 0.04, y0 - 0.04, H, 2 * h + 0.08, 2 * h + 0.08, 0.08, mix(C.green, '#fff', 0.15), C.green, dk(C.green, 0.15));
+    const fx = el('g', { transform: faceMX(x1, y1, H) }, g);
+    el('rect', { x: 0.14, y: 0.14, width: 0.6, height: 0.3, rx: 0.03, fill: C.ink2 }, fx);
+    R.kioskTick = el('path', { d: 'M0.3,0.3L0.4,0.38L0.58,0.2', fill: 'none', stroke: C.green, 'stroke-width': 3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke', opacity: 0.25 }, fx);
+    const fy = el('g', { transform: faceMY(x0, y1, H) }, g);
+    el('rect', { x: 0.2, y: 0.36, width: 0.48, height: 0.08, rx: 0.02, fill: mix(C.green, '#fff', 0.55) }, fy);
+    // sign pole + round sign with the reuse icon
+    box(g, c[0] - 0.035, c[1] - 0.035, H + 0.08, 0.07, 0.07, 0.42, '#B7C1CC', '#97A3AF', '#7F8C99');
+    const sp = P(c[0], c[1], H + 0.5), k = 0.0105 * S;
+    const sg = billboard(g, sp[0], sp[1] - 34 * k, k);
+    el('circle', { cx: 0, cy: 0, r: 42, fill: '#fff', stroke: C.green, 'stroke-width': 4.5 }, sg);
+    const ic = el('g', { transform: 'scale(0.82)' }, sg);
+    R.eyeSpin = iconEye(ic);
+    R.eyeAt = [sp[0], sp[1] - 34 * k];
+  }
+
+  /* ---- white model trees (architectural-model props) ---- */
+  if (!document.getElementById('sdTree')) {
+    const rg = el('radialGradient', { id: 'sdTree', cx: 0.36, cy: 0.32, r: 0.75 }, defs);
+    [[0, '#FFFFFF'], [0.55, '#EEF2F6'], [1, '#CDD6DF']].forEach(([o, c]) => el('stop', { offset: o, 'stop-color': c }, rg));
+  }
+  const tree = (c, r, h) => {
+    const g = sprite([c[0] - r, c[0] + r, c[1] - r, c[1] + r]).g;
+    ell(g, c[0] + 0.05, c[1] + 0.05, 0, r * 1.1, { fill: C.ink, opacity: 0.08 });
+    box(g, c[0] - 0.025, c[1] - 0.025, 0, 0.05, 0.05, 0.2, '#C9D1DA');
+    [[0.14, r, h], [0.14 + h * 0.42, r * 0.74, h * 0.72]].forEach(([z0, rr, hh]) => {
+      const ap = P(c[0], c[1], z0 + hh), b0 = P(c[0], c[1], z0), rx = SQ2 * rr * S, ry = rx / 2;
+      const A0 = `${r1(ap[0])},${r1(ap[1])}`, F0 = `${r1(b0[0])},${r1(b0[1] + ry)}`;
+      el('path', { d: `M${A0}L${r1(b0[0] - rx)},${r1(b0[1])}A${r1(rx)},${r1(ry)} 0 0 0 ${F0}Z`, fill: '#EEF2F6' }, g);
+      el('path', { d: `M${A0}L${F0}A${r1(rx)},${r1(ry)} 0 0 0 ${r1(b0[0] + rx)},${r1(b0[1])}Z`, fill: '#CBD4DE' }, g);
+    });
+  };
+  const DI = add(G.DESK, [-0.55, 0]);
+  tree(add(DI, [-0.8, 0.84]), 0.24, 0.62);
+  tree(add(G.L, [-1.62, 0.34]), 0.26, 0.7);
+  tree(add(G.L, [0.34, -1.64]), 0.22, 0.58);
+
+  /* ---- skill vault (Skill database) ---- */
+  {
+    const c = G.DB, g = sprite([c[0] - RT, c[0] + RT, c[1] - RT, c[1] + RT]).g;
+    const outline = { fill: 'none', stroke: C.ink2, 'stroke-width': 2.6, 'stroke-linecap': 'round' };
+    // contact shadow on the plinth
+    ell(g, c[0] + 0.12, c[1] + 0.12, TT, RT + 0.12, { fill: dk(C.cream, 0.18), opacity: 0.55 });
+    const body = el('g', null, g);
+    el('path', A(outline, { d: cylSide(c[0], c[1], TT, TT + 3 * TIER, RT), fill: hGrad('#FFFDF5', C.cream, dk(C.cream, 0.1)) }), body);
+    for (let i = 1; i < 3; i++) el('path', A(outline, { d: frontArc(c[0], c[1], TT + i * TIER, RT) }), body);
+    // storage slots on the middle tier
+    R.slots = [];
+    const zs = TT + 1.5 * TIER + 0.17, angs = [80, 57, 33, 10];
+    angs.forEach((deg, i) => {
+      const th = deg * Math.PI / 180, p = add(c, [Math.cos(th), Math.sin(th)], RT), e = [Math.sin(th), -Math.cos(th)];
+      const o = add(p, e, -0.125);
+      const f = el('g', { transform: faceM(o[0], o[1], zs, e[0], e[1]) }, body);
+      el('rect', { x: 0, y: 0, width: 0.25, height: 0.33, rx: 0.035, fill: dk(C.cream, 0.14) }, f);
+      const cart = el('g', null, f);
+      el('rect', { x: 0.035, y: 0.045, width: 0.18, height: 0.255, rx: 0.025, fill: C.ink2 }, cart);
+      el('rect', { x: 0.065, y: 0.15, width: 0.12, height: 0.1, rx: 0.012, fill: '#fff', opacity: 0.9 }, cart);
+      const led = el('rect', { x: 0.06, y: 0.075, width: 0.13, height: 0.045, rx: 0.02, fill: C.amber }, cart);
+      const hi = el('rect', { x: -0.02, y: -0.02, width: 0.29, height: 0.37, rx: 0.05, fill: 'none', stroke: C.green, 'stroke-width': 3, 'vector-effect': 'non-scaling-stroke', opacity: 0 }, f);
+      R.slots.push({ cart, led, hi });
+    });
+    // lid (lifts when a cartridge goes in / out)
+    R.lid = el('g', null, g);
+    el('path', A(outline, { d: cylSide(c[0], c[1], TT + 3 * TIER, TOWER_TOP, RT), fill: hGrad(C.amber, dk(C.amber, 0.06), dk(C.amber, 0.16)) }), R.lid);
+    ell(R.lid, c[0], c[1], TOWER_TOP, RT, A(outline, { fill: C.amber }));
+    R.lidHole = ell(g, c[0], c[1], TT + 3 * TIER, RT * 0.82, { fill: dk(C.cream, 0.45), opacity: 0 });
+    g.insertBefore(R.lidHole, R.lid);
+    // port rings (blue on the lid rim, green on the bottom tier), as in the icon
+    const sideP = (sgn, z) => P(c[0] + sgn * RT / SQ2, c[1] - sgn * RT / SQ2, z);
+    const ring = (q, col) => el('circle', { cx: r1(q[0]), cy: r1(q[1]), r: r1(0.15 * S), fill: '#fff', stroke: col, 'stroke-width': 3.4 }, g);
+    ring(sideP(-1, TT + 3 * TIER + 0.02), C.blue); ring(sideP(1, TT + 3 * TIER + 0.02), C.blue);
+    ring(sideP(-1, TT + 0.3), C.green); ring(sideP(1, TT + 0.3), C.green);
+    R.lidTop = P(c[0], c[1], TOWER_TOP);
+  }
+}
+
+/* ------------------------------ robot (iso, yawed boxes) ------------------------------ */
+const RK = 1.32;              // robot scale (tiles)
+const polys = (n, parent) => Array.from({ length: n }, () => el('polygon', { 'stroke-linejoin': 'round' }, parent));
+function paintBox(slots, ob, cA, cB, cTop, stroke, sw) {
+  ob.faces.forEach((fc, i) => {
+    const e = slots[i];
+    if (!fc.vis) { e.setAttribute('display', 'none'); return; }
+    e.removeAttribute('display');
+    const col = mix(cA, cB, fc.k);
+    set(e, { points: ptsStr(fc.pts), fill: col, stroke: stroke || col, 'stroke-width': stroke ? sw || 1.7 : 0.7 });
+  });
+  set(slots[4], { points: ptsStr(ob.top), fill: cTop, stroke: stroke || cTop, 'stroke-width': stroke ? sw || 1.7 : 0.7 });
+}
+function hideSlots(slots) { slots.forEach(e => e.setAttribute('display', 'none')); }
+
+function cartridgeSlots(parent) {
+  const g = el('g', null, parent);
+  const glow = el('ellipse', { fill: C.blue, opacity: 0, filter: 'url(#sdGlow)' }, g);
+  const faces = polys(5, g);
+  const label = el('polygon', { fill: '#fff', opacity: 0.92 }, g);
+  return { g, glow, faces, label };
+}
+// draws a standing cartridge (LoRA adapter) centred at world (x, y), from z0 up by h
+function paintCart(cs, x, y, z0, h, yaw, k, color, glow, alpha) {
+  if (k <= 0.001 || alpha <= 0.001) { cs.g.setAttribute('display', 'none'); return; }
+  cs.g.removeAttribute('display');
+  cs.g.setAttribute('opacity', r3(alpha));
+  const f = [Math.cos(yaw), Math.sin(yaw)], s = [-f[1], f[0]];
+  const ob = obox(x, y, z0, z0 + h * k, f, s, 0.05 * k, 0.15 * k, 0.05 * k, 0.15 * k);
+  paintBox(cs.faces, ob, lt(color, 0.05), dk(color, 0.28), lt(color, 0.45), dk(color, 0.45), 1.3);
+  // white label on whichever broad face is visible
+  const fc = ob.faces[0].vis ? ob.faces[0] : ob.faces[1];
+  const q = fc.pts, m = (a, b, u) => [lerp(a[0], b[0], u), lerp(a[1], b[1], u)];
+  const t0 = m(q[0], q[3], 0.3), t1 = m(q[1], q[2], 0.3), b0 = m(q[0], q[3], 0.72), b1 = m(q[1], q[2], 0.72);
+  set(cs.label, { points: ptsStr([m(t0, t1, 0.2), m(t0, t1, 0.8), m(b0, b1, 0.8), m(b0, b1, 0.2)]) });
+  const c = P(x, y, z0 + h * k * 0.5);
+  set(cs.glow, { cx: r1(c[0]), cy: r1(c[1]), rx: r1(0.34 * S * k), ry: r1(0.3 * S * k), fill: color, opacity: r3(glow * 0.55) });
+}
+
+function buildRobot() {
+  const sp = sprite([0, 0, 0, 0]);
+  G.robot = sp;
+  const g = sp.g, R = {};
+  R.beam = el('polygon', { fill: C.blue, opacity: 0 }, g);
+  R.shadow = el('ellipse', { fill: C.ink }, g);
+  R.body = polys(5, g);
+  R.badge = el('g', null, g);
+  el('rect', { x: -0.075, y: 0.04, width: 0.15, height: 0.13, rx: 0.03, fill: C.greenTint, stroke: C.green, 'stroke-width': 1.5, 'vector-effect': 'non-scaling-stroke' }, R.badge);
+  el('path', { d: 'M-0.038,0.105L-0.01,0.132L0.042,0.076', fill: 'none', stroke: C.green, 'stroke-width': 1.9, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke' }, R.badge);
+  R.earB = polys(5, g);
+  R.head = polys(5, g);
+  R.visor = el('g', null, g);
+  el('rect', { x: 0.07, y: 0.075, width: 0.42, height: 0.18, rx: 0.07, fill: C.blueTint, stroke: C.ink2, 'stroke-width': 1.7, 'vector-effect': 'non-scaling-stroke' }, R.visor);
+  R.eyeB = el('ellipse', { cx: 0.18, cy: 0.165, rx: 0.034, ry: 0.034, fill: C.blue }, R.visor);
+  R.eyeG = el('ellipse', { cx: 0.38, cy: 0.165, rx: 0.034, ry: 0.034, fill: C.green }, R.visor);
+  R.back = el('g', null, g);
+  el('rect', { x: 0.1, y: 0.07, width: 0.36, height: 0.2, rx: 0.05, fill: 'none', stroke: C.ink2, 'stroke-width': 1.4, 'vector-effect': 'non-scaling-stroke', opacity: 0.55 }, R.back);
+  el('path', { d: 'M0.18,0.14H0.38M0.18,0.2H0.38', fill: 'none', stroke: C.ink2, 'stroke-width': 1.4, 'stroke-linecap': 'round', 'vector-effect': 'non-scaling-stroke', opacity: 0.45 }, R.back);
+  R.earF = polys(5, g);
+  R.slot = el('path', { fill: 'none', stroke: C.ink2, 'stroke-width': 3, 'stroke-linecap': 'round', opacity: 0.45 }, g);
+  R.cart = cartridgeSlots(g);
+  R.antL = el('path', { fill: 'none', stroke: C.ink2, 'stroke-width': 2.2, 'stroke-linecap': 'round' }, g);
+  R.antC = el('circle', { fill: '#fff', stroke: C.ink2, 'stroke-width': 2 }, g);
+  R.plug = el('ellipse', { fill: 'none', stroke: C.blue, 'stroke-width': 2.5, opacity: 0 }, g);
+  G.refs.rb = R;
+}
+
+// st: { x, y, yaw, k (scale), lift (z), blink, cart: null | { mode:'carry'|'attach', color, h, lift, glow, alpha }, plug: 0..1, plugColor }
+function drawRobot(st) {
+  const R = G.refs.rb, g = G.robot.g;
+  G.robot.b = [st.x - 0.38, st.x + 0.38, st.y - 0.38, st.y + 0.38];
+  if (st.k <= 0.002) { g.setAttribute('display', 'none'); return; }
+  g.removeAttribute('display');
+  const k = st.k * RK, f = [Math.cos(st.yaw), Math.sin(st.yaw)], s = [-f[1], f[0]], x = st.x, y = st.y;
+  const z0 = TT + 0.11 + st.lift;
+  // beam column (teleport between acts)
+  if (st.beam > 0.001) {
+    const b0 = P(x, y, TT), w = 0.32 * S;
+    set(R.beam, { points: ptsStr([[b0[0] - w, b0[1]], [b0[0] + w, b0[1]], [b0[0] + w * 0.55, b0[1] - 2.2 * S], [b0[0] - w * 0.55, b0[1] - 2.2 * S]]), opacity: r3(st.beam * 0.16) });
+  } else R.beam.setAttribute('opacity', 0);
+  const sc = P(x, y, TT), rx = SQ2 * 0.27 * S * k;
+  set(R.shadow, { cx: r1(sc[0]), cy: r1(sc[1]), rx: r1(rx), ry: r1(rx / 2), opacity: r3(0.17 * clamp(1 - st.lift * 0.8)) });
+  const bz1 = z0 + 0.24 * k;
+  paintBox(R.body, obox(x, y, z0, bz1, f, s, 0.17 * k, 0.22 * k, 0.12 * k, 0.15 * k), '#F1F4F7', '#CCD5DE', '#FFFFFF', C.ink2, 1.6);
+  const frontVis = faceVis(f[0], f[1]);
+  if (frontVis) {
+    R.badge.removeAttribute('display');
+    R.badge.setAttribute('transform', `${ofaceM(x, y, bz1, f, s, 0.145 * k, 0.185 * k)} translate(${r3(0.185 * k)} 0) scale(${r3(k)})`);
+  } else R.badge.setAttribute('display', 'none');
+  const hz0 = bz1 + 0.03 * k, hz1 = hz0 + 0.34 * k, hf = 0.2 * k, hs = 0.28 * k;
+  const ears = [1, -1].map(sg => {
+    const cx = x + s[0] * sg * 0.315 * k, cy = y + s[1] * sg * 0.315 * k;
+    return { d: cx + cy, ob: obox(cx, cy, hz0 + 0.09 * k, hz0 + 0.25 * k, f, s, 0.075 * k, 0.035 * k, 0.075 * k, 0.035 * k) };
+  }).sort((a, b) => a.d - b.d);
+  paintBox(R.earB, ears[0].ob, '#E9EEF3', '#C3CDD8', '#FFFFFF', C.ink2, 1.4);
+  paintBox(R.head, obox(x, y, hz0, hz1, f, s, hf, hs, hf, hs), '#F7F9FB', '#D2DAE2', '#FFFFFF', C.ink2, 1.7);
+  if (frontVis) {
+    R.visor.removeAttribute('display');
+    R.visor.setAttribute('transform', `${ofaceM(x, y, hz1, f, s, hf, hs)} scale(${r3(k)})`);
+    const bl = 1 - 0.85 * (st.blink || 0);
+    set(R.eyeB, { ry: r3(0.034 * bl) }); set(R.eyeG, { ry: r3(0.034 * bl) });
+  } else R.visor.setAttribute('display', 'none');
+  if (faceVis(-f[0], -f[1])) {
+    R.back.removeAttribute('display');
+    R.back.setAttribute('transform', `${ofaceM(x, y, hz1, [-f[0], -f[1]], [-s[0], -s[1]], hf, hs)} scale(${r3(k)})`);
+  } else R.back.setAttribute('display', 'none');
+  paintBox(R.earF, ears[1].ob, '#E9EEF3', '#C3CDD8', '#FFFFFF', C.ink2, 1.4);
+  // cartridge slot on top of the head
+  const sl0 = P(x - f[0] * 0.07 * k - s[0] * 0.11 * k, y - f[1] * 0.07 * k - s[1] * 0.11 * k, hz1);
+  const sl1 = P(x - f[0] * 0.07 * k + s[0] * 0.11 * k, y - f[1] * 0.07 * k + s[1] * 0.11 * k, hz1);
+  set(R.slot, { d: `M${r1(sl0[0])},${r1(sl0[1])}L${r1(sl1[0])},${r1(sl1[1])}`, 'stroke-width': r1(2.2 * k) });
+  // antenna
+  const a0 = P(x + f[0] * 0.03 * k, y + f[1] * 0.03 * k, hz1), a1 = P(x + f[0] * 0.03 * k, y + f[1] * 0.03 * k, hz1 + 0.17 * k);
+  set(R.antL, { d: `M${r1(a0[0])},${r1(a0[1])}L${r1(a1[0])},${r1(a1[1] + 3 * k)}` });
+  set(R.antC, { cx: r1(a1[0]), cy: r1(a1[1]), r: r1(4.2 * k) });
+  // cartridge: carried above the head, or plugged into the slot
+  const cs = st.cart;
+  if (cs) {
+    const cx = x - f[0] * 0.07 * k, cy = y - f[1] * 0.07 * k;
+    if (cs.mode === 'carry') paintCart(R.cart, cx, cy, hz1 + 0.3 + cs.lift, 0.3, st.yaw, k, cs.color, cs.glow, cs.alpha);
+    else paintCart(R.cart, cx, cy, hz1 - 0.02 + cs.lift, cs.h, st.yaw, k, cs.color, cs.glow, cs.alpha);
+  } else R.cart.g.setAttribute('display', 'none');
+  if (st.plug > 0.001) {
+    const pc = P(x - f[0] * 0.05 * k, y - f[1] * 0.05 * k, hz1), rr = (0.2 + 0.5 * st.plug) * S;
+    set(R.plug, { cx: r1(pc[0]), cy: r1(pc[1]), rx: r1(rr), ry: r1(rr / 2), stroke: st.plugColor, opacity: r3(1 - st.plug) });
+  } else R.plug.setAttribute('opacity', 0);
+  G.robotHead = P(x, y, hz1 + 0.2);
+  G.robotHeadW = [x - f[0] * 0.05, y - f[1] * 0.05, hz1];
+}
+
+/* ------------------------------ effects layer ------------------------------ */
+function chip(parent, s, color, size, bg) {
+  const g = el('g', { opacity: 0 }, parent);
+  const w = monoW(s, size) + size * 1.3, h = size * 1.9;
+  g._w = w;
+  el('rect', { x: r1(-w / 2), y: r1(-h / 2), width: r1(w), height: r1(h), rx: r1(h / 2), fill: bg || '#fff', stroke: color, 'stroke-width': 1.6 }, g);
+  mono(g, 0, size * 0.36, s, color, size, 'middle', false);
+  return g;
+}
+function seeded(n) { let s = n * 9301 + 49297; return () => ((s = (s * 9301 + 49297) % 233280) / 233280); }
+
+function buildFx() {
+  const R = G.refs, g = G.gFx, port = G.port;
+  // warning pin above the desk
+  const wp = P(G.deskC[0], G.deskC[1], 1.95);
+  R.warn = el('g', { opacity: 0 }, g);
+  R.warnIn = el('g', null, R.warn);
+  el('path', { d: 'M-11,30L0,46L11,30Z', fill: '#fff', stroke: C.warn, 'stroke-width': 3.2, 'stroke-linejoin': 'round' }, R.warnIn);
+  el('circle', { cx: 0, cy: 0, r: 37, fill: '#fff', stroke: C.warn, 'stroke-width': 3.4 }, R.warnIn);
+  el('path', { d: 'M-8,33L8,33', stroke: '#fff', 'stroke-width': 4 }, R.warnIn);
+  iconDoc(el('g', { transform: 'translate(-2 0) scale(0.6)' }, R.warnIn));
+  R.warnAt = wp;
+  R.warnTask = mono(R.warn, 0, 0, 'task 0137', C.warn, port ? 19 : 18, 'middle');
+  // routing chips at the fork
+  const fs = port ? 18 : 18;
+  R.chipA = chip(g, 'match < τ → TRAIN', C.blue, fs, C.blueTint);
+  R.chipB = chip(g, 'skill_04 ≥ τ → REUSE', C.green, fs, C.greenTint);
+  // practice cards
+  R.cards = Array.from({ length: 6 }, () => { const c = el('g', { opacity: 0 }, g); iconCard(c); return c; });
+  R.cardsTag = mono(g, 0, 0, 'practice examples', C.blue, port ? 17 : 17, 'middle');
+  R.cardsTag.setAttribute('opacity', 0);
+  // flying cartridge
+  R.fly = cartridgeSlots(g);
+  R.fly.g.setAttribute('display', 'none');
+  // selection signal along SELECT + LOAD
+  R.signal = el('circle', { r: 7, fill: C.green, stroke: '#fff', 'stroke-width': 2.5, opacity: 0 }, g);
+  R.kioskChip = chip(g, 'skill_04', C.green, port ? 17 : 17, C.greenTint);
+  // success badge + confetti
+  R.check = el('g', { opacity: 0 }, g);
+  R.checkPath = iconCheckBadge(R.check, 25);
+  R.confetti = [];
+  const rnd = seeded(7), cols = [C.blue, C.green, C.amber, C.blue, C.green, C.warn];
+  for (let i = 0; i < 22; i++) {
+    const a = -Math.PI / 2 + (rnd() - 0.5) * 2.5, v = 150 + rnd() * 130;
+    R.confetti.push({
+      e: el('rect', { x: -4, y: -2.2, width: 8, height: 4.4, rx: 1.2, fill: cols[i % cols.length], opacity: 0 }, g),
+      vx: Math.cos(a) * v, vy: Math.sin(a) * v, w: (rnd() - 0.5) * 900, d: rnd() * 0.12
+    });
+  }
+  R.detached = chip(g, 'ejected → clean base model', C.ink2, port ? 16 : 16, '#fff');
+  // act indicator (screen-space HUD)
+  R.act1 = chip(G.gHud, '1/2 · LEARN A NEW SKILL', C.blue, 19, C.blueTint);
+  R.act2 = chip(G.gHud, '2/2 · REUSE A STORED SKILL', C.green, 19, C.greenTint);
+  // sparkles (teleport)
+  R.sparks = Array.from({ length: 5 }, () => el('path', { d: 'M0,-7L1.6,-1.6L7,0L1.6,1.6L0,7L-1.6,1.6L-7,0L-1.6,-1.6Z', fill: C.blue, opacity: 0 }, g));
+}
+
+/* ------------------------------ labels (pinned tags) ------------------------------ */
+function buildLabels() {
+  const R = G.refs, g = G.gLab, port = G.port;
+  const sp = (w, z = 0) => P(w[0], w[1], z);
+  const T = 34, MS = 20;
+  const L = {};
+  const pinned = (key, x, y, head, sub, color, anchorPt, anchor) => {
+    const grp = title(g, x, y, head, sub, color, T, anchor);
+    if (anchorPt) {
+      const ax = anchor === 'start' ? x + 14 : anchor === 'end' ? x - 14 : x;
+      pin(grp, ax, y + T * 1.22, anchorPt[0], anchorPt[1], color === C.ink ? C.ink2 : color);
+    }
+    L[key] = grp;
+  };
+  const monoTag = (key, x, y, s, color, anchor) => {
+    const grp = el('g', null, g);
+    const w = monoW(s, MS) + MS * 1.1, h = MS * 1.75;
+    const ox = anchor === 'start' ? w / 2 - MS * 0.55 : anchor === 'end' ? -w / 2 + MS * 0.55 : 0;
+    const bg = el('rect', { x: r1(x + ox - w / 2), y: r1(y - h * 0.68), width: r1(w), height: r1(h), rx: r1(h / 2), fill: color === C.blue ? C.blueTint : color === C.green ? C.greenTint : '#EEF1F4', opacity: 0 }, grp);
+    mono(grp, x, y, s, color, MS, anchor || 'middle');
+    L[key] = { g: grp, bg };
+  };
+  const desk = sp(G.deskC, 0.6), lab = sp(G.labC, 0.95), kiosk = sp(G.kioskC, 0.0), db = sp(G.DB, TOWER_TOP);
+  const F = sp(G.F, TT), N = sp(G.N, TT), E = sp(G.E, TT), retry = sp(G.RETRY, TT), M = sp(G.M, TT);
+  if (!port) {
+    pinned('mistake', desk[0], desk[1] - 240, 'Mistake', 'error detected', C.ink, null);
+    monoTag('choose', F[0] + 26, F[1] - 166, 'CHOOSE ONE', C.muted);
+    pinned('reflect', lab[0], lab[1] - 170, 'Self-reflect', 'train a new adapter', C.blue, null);
+    monoTag('trainStore', db[0] - 72, db[1] - 104, 'TRAIN + STORE', C.blue);
+    pinned('db', db[0] + 46, db[1] - 126, 'Skill database', 'store and retrieve adapters', C.ink, null, 'start');
+    monoTag('loadNew', N[0] + 118, N[1] - 68, 'LOAD NEW', C.blue);
+    pinned('reuse', kiosk[0], kiosk[1] + 158, 'Reuse skill', 'no training required', C.green, null);
+    monoTag('selectLoad', db[0] - 54, db[1] + 264, 'SELECT + LOAD', C.green);
+    monoTag('loadEx', E[0] + 132, E[1] + 16, 'LOAD EXISTING', C.green);
+    pinned('retry', retry[0], retry[1] - 214, 'Retry', 'apply selected skill', C.ink, null);
+    R.counter = mono(L.db, db[0] + 46, db[1] - 65, 'skills in library: 3', C.muted, 18, 'start');
+  }
+  R.labels = L;
+}
+
+/* ------------------------------ robot plan (timeline) ------------------------------ */
+const PLAN = [
+  { t0: 0.0, t1: 1.6, at: 'DESK', face: 'desk', face2: 'cam', tf: 1.08 },
+  { t0: 1.6, t1: 2.5, mv: 'entry' },
+  { t0: 2.5, t1: 3.3, at: 'F', face: 'cam' },
+  { t0: 3.3, t1: 4.4, mv: 'train1' },
+  { t0: 4.4, t1: 6.4, at: 'L', face: 'back', face2: 'cam', tf: 4.68 },
+  { t0: 6.4, t1: 7.4, mv: 'train2' },
+  { t0: 7.4, t1: 8.0, at: 'VBin', face: 'vault' },
+  { t0: 8.0, t1: 8.6, mv: 'vb' },
+  { t0: 8.6, t1: 9.2, at: 'VBout', face: 'vault' },
+  { t0: 9.2, t1: 10.2, mv: 'nw' },
+  { t0: 10.2, t1: 11.95, at: 'RETRY', face: 'cam', beamOut: 11.6 },
+  { t0: 11.95, t1: 13.6, at: 'DESK', face: 'desk', beamIn: 11.95, face2: 'cam', tf: 13.08 },
+  { t0: 13.6, t1: 14.4, mv: 'entry' },
+  { t0: 14.4, t1: 15.1, at: 'F', face: 'cam' },
+  { t0: 15.1, t1: 16.1, mv: 'inf1' },
+  { t0: 16.1, t1: 16.9, at: 'K', face: 'back' },
+  { t0: 16.9, t1: 18.25, mv: 'infV' },
+  { t0: 18.25, t1: 18.85, at: 'VGout', face: 'vault' },
+  { t0: 18.85, t1: 19.85, mv: 'ex' },
+  { t0: 19.85, t1: 23.62, at: 'RETRY', face: 'cam', beamOut: 23.3 },
+  { t0: 23.62, t1: 24.0, at: 'DESK', face: 'desk', beamIn: 23.62 }
+];
+const HZ1 = TT + 0.11 + (0.24 + 0.03 + 0.34) * RK;   // robot head-top height (no bob)
+const travelYaw = (tx, ty) => Math.atan2(ty + 0.75, tx + 0.75) + 0.25;
+const angLerp = (a, b, p) => { const d = ((b - a + Math.PI * 3) % (Math.PI * 2)) - Math.PI; return a + d * p; };
+
+function buildRobotPlan() {
+  const P_ = G.paths, sL = P_.train.sOf(G.L), sK = P_.infer.sOf(G.K);
+  const mk = (pts) => mkPath(pts);
+  const mv = {};
+  mv.entry = { path: P_.entry, lit: [['entry', 0, 1, 0, 1]] };
+  mv.train1 = { path: mk(subPts(P_.train, 0, sL)), lit: [['train', 0, 1, 0, sL / P_.train.len]] };
+  mv.train2 = { path: mk(subPts(P_.train, sL, P_.train.len - 0.5)), lit: [['train', 0, 1, sL / P_.train.len, 1]] };
+  mv.vb = { path: P_.vb, lit: [['vb', 0, 1, 0, 1]] };
+  const nwP = mk(fillet(joinPts(subPts(P_.nw, 0.5, P_.nw.len), P_.exit.pts), 0.7));
+  mv.nw = { path: nwP, lit: [['nw', 0, (P_.nw.len - 0.5) / nwP.len, 0, 1], ['exit', (P_.nw.len - 0.5) / nwP.len, 1, 0, 1]] };
+  mv.inf1 = { path: mk(subPts(P_.infer, 0, sK)), lit: [['infer', 0, 1, 0, sK / P_.infer.len]] };
+  const ivP = mk(joinPts(subPts(P_.infer, sK, P_.infer.len - 0.5), P_.vg.pts));
+  const q = (P_.infer.len - 0.5 - sK) / ivP.len;
+  mv.infV = { path: ivP, lit: [['infer', 0, q, sK / P_.infer.len, 1], ['vg', q, 1, 0, 1]] };
+  const exP = mk(fillet(joinPts(subPts(P_.ex, 0.5, P_.ex.len), P_.exit.pts), 0.7));
+  mv.ex = { path: exP, lit: [['ex', 0, (P_.ex.len - 0.5) / exP.len, 0, 1], ['exit', (P_.ex.len - 0.5) / exP.len, 1, 0, 1]] };
+  G.moves = mv;
+  const endOf = m => { const a = mv[m].path.at(mv[m].path.len); return [a.x, a.y]; };
+  G.spots = { DESK: G.DESK, F: G.F, L: endOf('train1'), VBin: endOf('train2'), VBout: endOf('vb'), RETRY: G.RETRY, K: endOf('inf1'), VGout: endOf('infV') };
+}
+function faceVec(face, pos) {
+  if (face === 'desk') return [-1, 0];
+  if (face === 'back') return [-1, -1];
+  if (face === 'vault') return [G.DB[0] - pos[0], G.DB[1] - pos[1]];
+  const a = Math.PI / 4 + 0.42; return [Math.cos(a), Math.sin(a)];
+}
+const yawOf = v => Math.atan2(v[1], v[0]);
+function moveYawAt(seg, p) { const a = G.moves[seg.mv].path.at(G.moves[seg.mv].path.len * p); return travelYaw(a.tx, a.ty); }
+
+function robotState(t) {
+  let i = PLAN.findIndex(s => t >= s.t0 && t < s.t1);
+  if (i < 0) i = PLAN.length - 1;
+  const seg = PLAN[i], st = { k: 1, lift: 0, beam: 0, blink: 0, cart: null, plug: 0, plugColor: C.blue };
+  if (seg.mv) {
+    const p = eio(win(t, seg.t0, seg.t1)), path = G.moves[seg.mv].path, a = path.at(path.len * p);
+    st.x = a.x; st.y = a.y; st.yaw = travelYaw(a.tx, a.ty);
+    st.lift = 0.04 * Math.sin(Math.PI * p);
+  } else {
+    const pos = G.spots[seg.at];
+    st.x = pos[0]; st.y = pos[1];
+    let yaw = yawOf(faceVec(seg.face, pos));
+    if (seg.face2) yaw = angLerp(yaw, yawOf(faceVec(seg.face2, pos)), eio(win(t, seg.tf, seg.tf + 0.32)));
+    const prev = PLAN[i - 1], next = PLAN[i + 1];
+    if (prev && prev.mv && !seg.beamIn) yaw = angLerp(moveYawAt(prev, 1), yaw, eio(win(t, seg.t0, seg.t0 + 0.4)));
+    if (next && next.mv && !seg.beamOut) yaw = angLerp(yaw, moveYawAt(next, 0), eio(win(t, seg.t1 - 0.35, seg.t1)));
+    st.yaw = yaw;
+    if (seg.beamOut) {
+      const p = win(t, seg.beamOut, seg.beamOut + 0.32);
+      st.k = 1 - ei(p); st.lift += 0.5 * ei(p); st.beam = bump(t, seg.beamOut - 0.05, seg.beamOut + 0.4);
+    }
+    if (seg.beamIn) {
+      const p = win(t, seg.beamIn, seg.beamIn + 0.38);
+      st.k = Math.max(0, eback(p)); st.lift += 0.45 * (1 - eo(p)); st.beam = bump(t, seg.beamIn - 0.05, seg.beamIn + 0.35);
+    }
+  }
+  st.lift += 0.025 * Math.sin(t * 2 * Math.PI / 1.4);
+  for (const tb of [0.55, 4.6, 9.5, 13.2, 16.3, 21.6]) st.blink = Math.max(st.blink, bump(t, tb, tb + 0.16));
+  // cartridge carried / plugged in
+  if (t >= 6.42 && t < 7.45) st.cart = { mode: 'carry', color: C.blue, lift: 0.03 * Math.sin(t * 7), glow: 0.7, alpha: 1 };
+  const att = (ta, te, col) => {
+    if (t < ta || t >= te + 0.15) return;
+    const lift = t < te ? 0.14 * (1 - eo(win(t, ta, ta + 0.16))) : 0.26 * eo(win(t, te, te + 0.15));
+    st.cart = { mode: 'attach', color: col, h: 0.27, lift, glow: 0.65, alpha: 1 };
+    st.plug = t > ta + 0.12 && t < ta + 0.55 ? win(t, ta + 0.12, ta + 0.55) : 0;
+    st.plugColor = col;
+  };
+  att(9.1, 11.0, C.blue);
+  att(18.7, 20.65, C.green);
+  return st;
+}
+
+/* ------------------------------ flights of the cartridge ------------------------------ */
+const FLIGHTS = [
+  { t0: 5.95, t1: 6.42, from: 'door', to: 'carry', color: C.blue, at: 'L' },
+  { t0: 7.45, t1: 7.95, from: 'carry', to: 'lid', color: C.blue, at: 'VBin' },
+  { t0: 8.65, t1: 9.1, from: 'lid', to: 'slot', color: C.blue, at: 'VBout' },
+  { t0: 11.15, t1: 11.6, from: 'up', to: 'lid', color: C.blue, at: 'RETRY' },
+  { t0: 18.25, t1: 18.7, from: 'lid', to: 'slot', color: C.green, at: 'VGout' },
+  { t0: 20.8, t1: 21.25, from: 'up', to: 'lid', color: C.green, at: 'RETRY' }
+];
+function flightPoint(name, at) {
+  const r = G.spots[at];
+  if (name === 'door') return [G.labC[0] + 0.25, G.labC[1] + 0.62, 0.25];
+  if (name === 'lid') return [G.DB[0], G.DB[1], TOWER_TOP + 0.1];
+  if (name === 'carry') return [r[0], r[1], HZ1 + 0.3];
+  if (name === 'slot') return [r[0], r[1], HZ1 + 0.12];
+  return [r[0], r[1], HZ1 + 0.24];
+}
+function drawFlights(t) {
+  const R = G.refs;
+  const f = FLIGHTS.find(q => t >= q.t0 && t < q.t1);
+  if (!f) { R.fly.g.setAttribute('display', 'none'); return; }
+  const p = eio(win(t, f.t0, f.t1)), a = flightPoint(f.from, f.at), b = flightPoint(f.to, f.at);
+  const z = lerp(a[2], b[2], p) + (f.from === 'door' ? 0.9 : 0.42) * 4 * p * (1 - p);
+  let alpha = 1;
+  if (f.from === 'lid') alpha = eo(win(p, 0, 0.18));
+  if (f.to === 'lid') alpha = 1 - ei(win(p, 0.78, 1));
+  paintCart(R.fly, lerp(a[0], b[0], p), lerp(a[1], b[1], p), z, 0.27, 0.35 + p * 0.5, RK, f.color, 0.75, alpha);
+}
+
+/* ------------------------------ depth sorting ------------------------------ */
+// a must be painted before b? Axis-separated boxes decide by that axis; boxes that are
+// diagonal neighbours or overlap fall back to the depth key (x + y of the centre).
+function behind(a, b) {
+  const A = a.b, B = b.b, e = 1e-6;
+  const ax = A[1] <= B[0] + e, bx = B[1] <= A[0] + e, ay = A[3] <= B[2] + e, by = B[3] <= A[2] + e;
+  if (!((ax && by) || (bx && ay))) { if (ax || ay) return true; if (bx || by) return false; }
+  return A[0] + A[1] + A[2] + A[3] < B[0] + B[1] + B[2] + B[3];
+}
+function sortSprites() {
+  const sp = G.sprites, n = sp.length, indeg = new Array(n).fill(0), adj = sp.map(() => []);
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+    if (behind(sp[i], sp[j])) { adj[i].push(j); indeg[j]++; } else { adj[j].push(i); indeg[i]++; }
+  }
+  const order = [], used = new Array(n).fill(false);
+  for (let k = 0; k < n; k++) {
+    let pick = -1;
+    for (let i = 0; i < n; i++) if (!used[i] && indeg[i] === 0) { pick = i; break; }
+    if (pick < 0) {   // cycle guard: take the deepest remaining sprite
+      let best = Infinity;
+      for (let i = 0; i < n; i++) if (!used[i]) { const q = sp[i].b, kk = q[0] + q[1] + q[2] + q[3]; if (kk < best) { best = kk; pick = i; } }
+    }
+    used[pick] = true; order.push(pick);
+    for (const j of adj[pick]) indeg[j]--;
+  }
+  const key = order.join(',');
+  if (key !== G.orderKey) { G.orderKey = key; order.forEach(i => G.gSort.appendChild(sp[i].g)); }
+}
+
+/* ------------------------------ render(t): the whole frame ------------------------------ */
+const LIT_FADE = [23.35, 23.9];
+const NEUTRAL_PIECES = { entry: 1, exit: 1 }, BLUE_PIECES = { train: 1, nw: 1, vb: 1 };
+function updateTrails(t) {
+  const lit = {}, actStart = t >= 11.95 && t < 21.2 ? 11.95 : 0;
+  for (const seg of PLAN) {
+    if (!seg.mv || t < seg.t0) continue;
+    const p = t >= seg.t1 ? 1 : eio(win(t, seg.t0, seg.t1));
+    for (const [piece, a, b, f0, f1] of G.moves[seg.mv].lit) {
+      if (p <= a) continue;
+      if (NEUTRAL_PIECES[piece] && seg.t0 < actStart) continue;
+      lit[piece] = Math.max(lit[piece] || 0, f0 + (f1 - f0) * clamp((p - a) / (b - a)));
+    }
+  }
+  if (t >= 21.2) lit.entry = lit.exit = 1;
+  const fade = 1 - eio(win(t, LIT_FADE[0], LIT_FADE[1]));
+  const blueDim = 1 - 0.55 * env(t, 12.0, 12.6, 20.9, 21.5);
+  for (const k in G.pieces) {
+    const pc = G.pieces[k], f = lit[k] || 0;
+    pc.lit.setAttribute('stroke-dashoffset', r3(1 - f));
+    pc.lit.setAttribute('opacity', f > 0.002 ? r3(fade * (BLUE_PIECES[k] ? blueDim : 1)) : 0);
+  }
+}
+const place = (e, x, y, k, rot) => e.setAttribute('transform', `translate(${r1(x)} ${r1(y)})${k != null ? ` scale(${r3(k)})` : ''}${rot ? ` rotate(${r1(rot)})` : ''}`);
+const show = (e, a) => e.setAttribute('opacity', r3(clamp(a)));
+
+function render(t) {
+  t = ((t % DURATION) + DURATION) % DURATION;
+  const R = G.refs, port = G.port;
+  const st = robotState(t);
+  drawRobot(st);
+  drawFlights(t);
+  updateTrails(t);
+
+  /* desk monitor + warning pin */
+  const act2 = t >= 11.95;
+  const typing = act2 ? win(t, 12.45, 12.95) : win(t, 0.1, 0.9);
+  const failed = (t >= 0.95 && t < 11.95) || (t >= 13.0 && t < 23.62);
+  R.deskLines.forEach((e, i) => e.setAttribute('width', r3(+e.getAttribute('data-w') * clamp(typing * 4 - i))));
+  R.deskBg.setAttribute('fill', failed ? C.warnTint : '#F7FAFD');
+  R.deskBar.setAttribute('fill', failed ? C.warn : C.blue);
+  show(R.deskX, failed ? 1 : 0);
+  const w1 = act2 ? 13.0 : 1.0, wOut = act2 ? 13.9 : 1.9;
+  const wa = env(t, w1, w1 + 0.1, wOut, wOut + 0.3);
+  show(R.warn, wa);
+  place(R.warn, R.warnAt[0], R.warnAt[1] + 3 * Math.sin(t * 3.2));
+  place(R.warnIn, 0, 0, Math.max(0.001, eback(win(t, w1, w1 + 0.35))));
+  R.warnTask.textContent = act2 ? 'task 0142' : 'task 0137';
+  R.warnTask.setAttribute('y', port ? -50 : -50);
+
+  /* fork: pulse, routing chip, sign boards */
+  const pulse = (j, ta) => {
+    const p = win(t, ta, ta + 0.7), r = (0.4 + 0.55 * p) * SQ2 * S;
+    set(j.pulse, { rx: r1(r), ry: r1(r / 2), opacity: r3(p > 0 && p < 1 ? (1 - p) * 0.8 : 0) });
+  };
+  pulse(R.jF, t < 12 ? 2.55 : 14.45);
+  pulse(R.jM, t < 12 ? 9.9 : 19.55);
+  const F = P(G.F[0], G.F[1], TT);
+  const chipPos = port ? [F[0] + 150, F[1] + 52] : [F[0] - 62, F[1] + 80];
+  show(R.chipA, env(t, 2.6, 2.8, 3.5, 3.8)); place(R.chipA, chipPos[0], chipPos[1]);
+  show(R.chipB, env(t, 14.5, 14.7, 15.4, 15.7)); place(R.chipB, chipPos[0], chipPos[1]);
+  const hT = env(t, 2.85, 3.05, 4.6, 5.0), hI = env(t, 14.75, 14.95, 16.2, 16.6);
+  place(R.boardT.inner, 0, 0, 1 + 0.12 * hT); show(R.boardT.holder, 1 - 0.55 * hI);
+  place(R.boardI.inner, 0, 0, 1 + 0.12 * hI); show(R.boardI.holder, 1 - 0.55 * hT);
+
+  /* lab: bulb glow, practice cards */
+  show(R.bulbGlow, 0.42 * env(t, 4.45, 4.8, 6.2, 6.8));
+  const head = P(G.spots.L[0], G.spots.L[1], HZ1 + 0.1), hatch = P(G.labC[0] - 0.27, G.labC[1] - 0.27, 1.0);
+  const fan = [head[0] - 136, head[1] - 34];
+  R.cards.forEach((c, i) => {
+    const ta = 4.75 + i * 0.09, tb = 5.42 + i * 0.05;
+    const a = env(t, ta, ta + 0.08, tb + 0.18, tb + 0.3);
+    if (a <= 0.001) { show(c, 0); return; }
+    const o = i - 2.5, fp = [fan[0] + o * 27, fan[1] + o * o * 3];
+    const pIn = eo(win(t, ta, ta + 0.3)), pOut = ei(win(t, tb, tb + 0.3));
+    const x = lerp(lerp(head[0], fp[0], pIn), hatch[0], pOut), y = lerp(lerp(head[1], fp[1], pIn), hatch[1], pOut);
+    show(c, a); place(c, x, y, (0.35 + 0.35 * pIn) * (1 - 0.6 * pOut), o * 7 * (1 - pOut));
+  });
+  show(R.cardsTag, env(t, 4.95, 5.1, 5.5, 5.7)); place(R.cardsTag, fan[0], fan[1] - 36);
+
+  /* kiosk: reuse icon turns, selection travels to the vault */
+  R.eyeSpin.setAttribute('transform', `rotate(${r1(360 * eio(win(t, 16.15, 16.85)))})`);
+  show(R.kioskTick, 0.25 + 0.75 * env(t, 16.35, 16.5, 17.8, 18.2));
+  show(R.kioskChip, env(t, 16.4, 16.55, 17.3, 17.6));
+  place(R.kioskChip, R.eyeAt[0] + (port ? -78 : 82), R.eyeAt[1] + 2);
+  const sg = win(t, 16.45, 16.95), sp = G.paths.infer.at(lerp(G.paths.infer.sOf(G.K), G.paths.infer.len, eio(sg)));
+  const sq = P(sp.x, sp.y, TT + 0.05);
+  set(R.signal, { cx: r1(sq[0]), cy: r1(sq[1]), opacity: r3(sg > 0 && sg < 1 ? 1 : 0) });
+
+  /* vault: lid, slots, counter */
+  const lift = 0.24 * Math.max(bump(t, 7.7, 8.15), bump(t, 8.45, 8.85), bump(t, 11.38, 11.8), bump(t, 18.05, 18.45), bump(t, 21.03, 21.45));
+  R.lid.setAttribute('transform', `translate(0 ${r1(-lift * S * ZK)})`);
+  show(R.lidHole, lift > 0.01 ? 1 : 0);
+  const s4 = R.slots[3], stored = eo(win(t, 7.9, 8.1)) * (1 - eio(win(t, LIT_FADE[0], LIT_FADE[1])));
+  show(s4.cart, stored);
+  s4.led.setAttribute('fill', t >= 16.95 ? C.green : C.blue);
+  show(s4.hi, env(t, 16.95, 17.1, 18.7, 19.0) + 0.9 * bump(t, 7.92, 8.4) * 0);
+  R.slots.forEach((s, i) => { if (i < 3) s.led.setAttribute('fill', C.amber); });
+  R.counter.textContent = 'skills in library: ' + (t >= 7.95 && t < 23.6 ? 4 : 3);
+  R.counter.setAttribute('fill', mix(C.muted, C.blue, env(t, 7.95, 8.1, 8.9, 9.4)));
+
+  /* retry: pad, success badge, confetti, eject note */
+  show(R.padGlow, Math.max(env(t, 10.3, 10.45, 11.45, 11.8), env(t, 19.95, 20.1, 23.25, 23.6)));
+  const cB = P(G.RETRY[0], G.RETRY[1], HZ1 + 0.5), cAt = [cB[0] + 58, cB[1] - 6];
+  const ca = t < 15 ? env(t, 10.35, 10.45, 11.45, 11.65) : env(t, 19.95, 20.05, 23.2, 23.45);
+  const ct = t < 15 ? 10.35 : 19.95;
+  show(R.check, ca); place(R.check, cAt[0], cAt[1], Math.max(0.001, eback(win(t, ct, ct + 0.35))));
+  R.checkPath.setAttribute('stroke-dasharray', '1 1.02');
+  R.checkPath.setAttribute('stroke-dashoffset', r3(1 - eo(win(t, ct + 0.12, ct + 0.42))));
+  const burst = t < 15 ? 10.42 : 20.02;
+  R.confetti.forEach(c => {
+    const u = t - burst - c.d;
+    if (u < 0 || u > 1.15) { show(c.e, 0); return; }
+    place(c.e, cB[0] + 10 + c.vx * u, cB[1] + c.vy * u + 300 * u * u, null, c.w * u);
+    show(c.e, 1 - win(u, 0.75, 1.15));
+  });
+  const dAt = P(G.RETRY[0], G.RETRY[1], 0);
+  show(R.detached, t < 15 ? env(t, 11.1, 11.25, 11.8, 12.0) : env(t, 20.75, 20.9, 23.2, 23.45));
+  place(R.detached, dAt[0] - 62, dAt[1] + 112);
+
+  /* teleport sparkles */
+  R.sparks.forEach((e, i) => {
+    let a = 0, x = 0, y = 0;
+    for (const [tb, at] of [[11.6, 'RETRY'], [11.95, 'DESK'], [23.3, 'RETRY'], [23.62, 'DESK']]) {
+      const u = win(t, tb + i * 0.015, tb + 0.3 + i * 0.015);
+      if (u > 0 && u < 1) {
+        const p = P(G.spots[at][0], G.spots[at][1], TT + 0.4 + u * 0.9);
+        a = Math.sin(Math.PI * u); x = p[0] + (i - 2) * 16 + Math.sin(i * 2.3) * 8; y = p[1] - i * 7;
+      }
+    }
+    show(e, a); place(e, x, y, 0.6 + 0.6 * a);
+  });
+
+  /* act indicator */
+  show(R.act1, t < 15 ? 1 - win(t, 11.8, 12.0) : win(t, 23.68, 23.9));
+  show(R.act2, t < 15 ? win(t, 12.05, 12.3) : 1 - win(t, 23.4, 23.6));
+
+  /* active mono labels: soft tint behind the label while its segment is in use */
+  const L = R.labels;
+  show(L.trainStore.bg, env(t, 6.4, 6.6, 7.9, 8.2));
+  show(L.loadNew.bg, env(t, 8.6, 8.8, 9.9, 10.2));
+  show(L.selectLoad.bg, env(t, 16.6, 16.8, 17.9, 18.2));
+  show(L.loadEx.bg, env(t, 18.25, 18.45, 19.5, 19.8));
+  show(L.choose.bg, Math.max(env(t, 2.5, 2.7, 3.3, 3.5), env(t, 14.4, 14.6, 15.1, 15.3)));
+
+  sortSprites();
+  updateCamera(t);
+}
+
+
+/* ------------------------------ camera: portrait re-frame + live minimap ------------------------------ */
+const WORLD_BOX = [96, 40, 1604, 800];          // landscape content bounds (viewBox units)
+const MINI_BOX = [86, 150, 1614, 735];           // part of the world shown in the minimap
+const CAM_KEYS = [[0, 300], [2.0, 300], [2.65, 470], [3.35, 470], [4.35, 745], [6.45, 745], [7.35, 1085], [9.25, 1085],
+  [10.15, 1360], [11.65, 1360], [12.2, 300], [13.65, 300], [14.35, 470], [15.15, 470], [16.05, 745], [16.95, 745],
+  [17.95, 1085], [18.85, 1085], [19.8, 1360], [23.3, 1360], [23.92, 300], [24, 300]];
+let VIEW = { cam: false };
+function camX(t) {
+  for (let i = 1; i < CAM_KEYS.length; i++) {
+    const [t1, x1] = CAM_KEYS[i], [t0, x0] = CAM_KEYS[i - 1];
+    if (t <= t1) return lerp(x0, x1, eio(win(t, t0, t1)));
+  }
+  return CAM_KEYS[0][1];
+}
+function applyView() {
+  const svg = document.getElementById('scene'), A = innerWidth / Math.max(1, innerHeight);
+  const Gm = G.gMini;
+  if (A >= 0.9) {
+    VIEW = { cam: false };
+    svg.setAttribute('viewBox', '0 0 1700 850');
+    G.gWorld.removeAttribute('transform'); G.gView.removeAttribute('mask');
+    Gm.setAttribute('display', 'none');
+    placeHud(1662, 52);
+    return;
+  }
+  const W = 900, H = Math.round(W / A), wh = WORLD_BOX[3] - WORLD_BOX[1];
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const MW = MINI_BOX[2] - MINI_BOX[0], MH = MINI_BOX[3] - MINI_BOX[1];
+  let mw = W - 64, ms = mw / MW, mh = MH * ms, mini = true;
+  let Z = Math.min(1.55, (H - 104 - mh - 46) / wh);
+  if (Z < 1.05) {                       // shorter portrait: keep the close-up, shrink the minimap
+    Z = 1.05; mh = H - 150 - wh * Z;
+    if (mh < 150) { mini = false; Z = Math.min(1.55, (H - 60) / wh); } else { ms = mh / MH; mw = MW * ms; }
+  }
+  const miniTop = H - 104 - mh;
+  const top = mini ? Math.max(12, (miniTop - 34 - wh * Z) / 2) : (H - wh * Z) / 2;
+  VIEW = { cam: true, W, H, Z, hw: W / 2 / Z, ty: top - WORLD_BOX[1] * Z, mini };
+  // soft fade at the left/right frame edges
+  while (Gm.firstChild) Gm.removeChild(Gm.firstChild);
+  let mask = document.getElementById('sdEdge');
+  if (mask) mask.parentNode.removeChild(mask);
+  const lg = document.getElementById('sdEdgeG') || el('linearGradient', { id: 'sdEdgeG', x1: 0, y1: 0, x2: 1, y2: 0 }, defs);
+  if (!lg.firstChild) [[0, '#000'], [0.07, '#fff'], [0.93, '#fff'], [1, '#000']].forEach(([o, c]) => el('stop', { offset: o, 'stop-color': c }, lg));
+  mask = el('mask', { id: 'sdEdge', maskUnits: 'userSpaceOnUse', x: 0, y: 0, width: W, height: H }, defs);
+  el('rect', { x: 0, y: 0, width: W, height: H, fill: 'url(#sdEdgeG)' }, mask);
+  G.gView.setAttribute('mask', 'url(#sdEdge)');
+  if (!mini) { Gm.setAttribute('display', 'none'); placeHud(W - 24, 44); return; }
+  placeHud(W - (W - mw) / 2 + 2, miniTop - 38);
+  Gm.removeAttribute('display');
+  const x0 = (W - mw) / 2, y0 = miniTop;
+  el('rect', { x: x0 - 10, y: y0 - 14, width: mw + 20, height: mh + 28, rx: 22, fill: '#F8FAFC', stroke: '#E3E8EE', 'stroke-width': 2 }, Gm);
+  mono(Gm, x0 + 2, y0 - 30, 'THE WHOLE LOOP', C.muted, 19, 'start', false);
+  const inner = el('g', { transform: `translate(${r1(x0 - MINI_BOX[0] * ms)} ${r1(y0 - MINI_BOX[1] * ms)}) scale(${r3(ms)})` }, Gm);
+  const use = el('use', { href: '#sdCore' }, inner);
+  use.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', '#sdCore');
+  VIEW.win = el('rect', { y: MINI_BOX[1] + 4, height: MINI_BOX[3] - MINI_BOX[1] - 8, rx: 26, fill: C.blue, 'fill-opacity': 0.05, stroke: C.blue, 'stroke-opacity': 0.55, 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke' }, inner);
+}
+function labelBoxes() {
+  if (G.labelBoxes) return G.labelBoxes;
+  const L = G.refs.labels, list = Object.values(L).map(v => v.g || v);
+  G.labelBoxes = list.map(g => { const b = g.getBBox(); return { g, x0: b.x, x1: b.x + b.width }; });
+  return G.labelBoxes;
+}
+function placeHud(xr, y) {
+  for (const c of [G.refs.act1, G.refs.act2]) place(c, xr - c._w / 2, y);
+}
+function updateCamera(t) {
+  if (!VIEW.cam) {
+    if (G.labelFaded) { labelBoxes().forEach(l => l.g.removeAttribute('opacity')); G.labelFaded = false; }
+    return;
+  }
+  const cx = clamp(camX(t), WORLD_BOX[0] + VIEW.hw - 40, WORLD_BOX[2] - VIEW.hw + 60);
+  G.gWorld.setAttribute('transform', `translate(${r1(VIEW.W / 2 - cx * VIEW.Z)} ${r1(VIEW.ty)}) scale(${r3(VIEW.Z)})`);
+  if (VIEW.win) { const x0 = Math.max(cx - VIEW.hw, MINI_BOX[0] + 4), x1 = Math.min(cx + VIEW.hw, MINI_BOX[2] - 4); set(VIEW.win, { x: r1(x0), width: r1(x1 - x0) }); }
+  // only labels that sit fully inside the camera window stay visible
+  const m = 50 / VIEW.Z, left = cx - VIEW.hw + m, right = cx + VIEW.hw - m;
+  labelBoxes().forEach(l => l.g.setAttribute('opacity', r3(1 - clamp(Math.max(left - l.x0, l.x1 - right, 0) / 26))));
+  G.labelFaded = true;
+}
+
+/* ------------------------------ playback contract ------------------------------ */
+const params = new URLSearchParams(location.search);
+const root = document.documentElement;
+if (params.get('controls') === '0') root.classList.add('no-controls');
+if (params.get('bg') === 'transparent') root.classList.add('bg-transparent');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const stage = document.getElementById('stage');
+const btn = document.getElementById('btnPlay'), btnReplay = document.getElementById('btnReplay');
+const icoPause = document.getElementById('icoPause'), icoPlay = document.getElementById('icoPlay');
+
+let clock = reduceMotion || params.get('autoplay') === '0' ? STATIC_T : 0;
+let playing = false, last = null, raf = 0;
+let userPaused = reduceMotion || params.get('autoplay') === '0';
+let pageVisible = !document.hidden, onScreen = true;
+
+buildScene();
+applyView();
+render(clock);
+
+function tick(now) {
+  if (last !== null) clock = (clock + (now - last) / 1000) % DURATION;
+  last = now;
+  render(clock);
+  raf = requestAnimationFrame(tick);
+}
+function sync() {
+  const run = !userPaused && pageVisible && onScreen;
+  if (run && !playing) { playing = true; last = null; raf = requestAnimationFrame(tick); }
+  if (!run && playing) { playing = false; cancelAnimationFrame(raf); }
+  icoPause.style.display = userPaused ? 'none' : '';
+  icoPlay.style.display = userPaused ? '' : 'none';
+  btn.setAttribute('aria-label', userPaused ? 'Play animation' : 'Pause animation');
+}
+function play() { userPaused = false; sync(); }
+function pause() { userPaused = true; sync(); }
+function seek(s) { clock = ((s % DURATION) + DURATION) % DURATION; render(clock); }
+
+btn.addEventListener('click', () => (userPaused ? play() : pause()));
+btnReplay.addEventListener('click', () => { seek(0); play(); });
+addEventListener('keydown', ev => {
+  if (ev.code === 'Space' && !(ev.target instanceof HTMLButtonElement)) { ev.preventDefault(); userPaused ? play() : pause(); }
+});
+document.addEventListener('visibilitychange', () => { pageVisible = !document.hidden; sync(); });
+if ('IntersectionObserver' in window) new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; sync(); }).observe(stage);
+addEventListener('resize', () => { applyView(); render(clock); });
+sync();
+window.SDAnim = { play, pause, seek, duration: DURATION };
+})();
+</script>
+</body>
+</html>
