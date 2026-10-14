@@ -1718,3 +1718,233 @@ html.js .reveal.is-visible {
   html.js .reveal { opacity: 1; transform: none; }
   html.js .figitem[hidden] { display: block !important; }
 }
+
+/* ------------------------------------------------------------------ implementation page */
+
+.impl-hero {
+  padding: 64px 0 56px;
+}
+
+.impl-title {
+  margin: 4px 0 18px;
+  font-family: var(--serif);
+  font-size: clamp(2.3rem, 5vw, 3.8rem);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.impl-lede {
+  margin: 0 0 26px;
+  font-size: 19px;
+  line-height: 1.65;
+  color: var(--ink-2);
+  text-align: justify;
+  hyphens: auto;
+}
+
+.stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stack li {
+  padding: 8px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.stack b {
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.code-card {
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid #1E2938;
+  border-radius: 16px;
+  background: #121A26;
+  box-shadow: var(--shadow-2);
+}
+
+.code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #223044;
+  background: #172131;
+}
+
+.code-file {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #DCE6F2;
+}
+
+.code-tag {
+  padding: 3px 9px;
+  border: 1px solid #2E3E55;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8FA3BC;
+}
+
+pre.code {
+  margin: 0;
+  padding: 18px 20px 20px;
+  overflow-x: auto;
+  background: transparent;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.65;
+  color: #D6E1EE;
+  white-space: pre;
+}
+
+pre.code code {
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+
+.tok-com { color: #7D8FA7; font-style: italic; }
+.tok-str { color: #9BD8B2; }
+.tok-kw  { color: #8AB8FF; font-weight: 700; }
+.tok-num { color: #F5C978; }
+.tok-fn  { color: #F2F5F9; font-weight: 700; }
+
+.impl-step {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+  padding: 44px 0;
+  border-top: 1px solid var(--rule);
+}
+
+.section-head + .impl-step {
+  padding-top: 4px;
+  border-top: 0;
+}
+
+.impl-step-text h3 {
+  margin: 0 0 12px;
+  font-family: var(--serif);
+  font-size: 1.75rem;
+  font-weight: 500;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.impl-step-text p {
+  margin: 0 0 12px;
+  text-align: justify;
+  hyphens: auto;
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--ink-2);
+}
+
+.impl-note {
+  padding: 10px 14px;
+  border-left: 3px solid var(--blue);
+  border-radius: 0 10px 10px 0;
+  background: var(--blue-tint);
+  font-size: 14px !important;
+}
+
+.impl-note code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.7);
+  font-family: var(--mono);
+  font-size: 0.9em;
+  color: var(--ink);
+}
+
+.settings-table td:last-child {
+  color: var(--ink);
+}
+
+@media (max-width: 900px) {
+}
+
+@media (max-width: 640px) {
+  .impl-hero { padding: 40px 0 36px; }
+  pre.code { font-size: 12px; padding: 14px; }
+}
+
+/* back-to-project-page button (implementation page) */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 15px 8px 11px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: var(--shadow-1);
+  transition: background 0.2s, transform 0.2s var(--ease);
+}
+
+.back-btn:hover {
+  color: #fff;
+  background: #0E151F;
+  transform: translateX(-2px);
+}
+
+.back-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.back-btn.back-btn-hero {
+  display: flex;
+  width: fit-content;
+  margin-bottom: 26px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+}
+
+.back-btn.back-btn-hero:hover {
+  color: var(--ink);
+  background: var(--paper-2);
+}
+
+.footer-sd .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .site-nav .back-btn span { display: none; }
+  .site-nav .back-btn { padding: 8px; }
+}

@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="How Self-Direction is implemented: vLLM for inference, SQLite for failure memory, sentence-embedding routing, self-reflection, and PEFT LoRA adapters around a frozen model.">
+  <meta name="theme-color" content="#FBFAF7">
+  <title>Implementation · Self-Direction</title>
+
+  <script>document.documentElement.classList.add('js');</script>
+  <link rel="icon" type="image/svg+xml" href="static/images/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="static/images/favicon.ico">
+  <link rel="preload" href="static/fonts/newsreader-roman.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="static/fonts/instrument-sans.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="static/css/bulma.min.css">
+  <link rel="stylesheet" href="static/css/index.css?v=20261017">
+  <script defer src="static/js/index.js?v=20261017"></script>
+  <script defer src="static/js/code.js?v=20261017"></script>
+</head>
+<body>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="fork-mark" viewBox="0 0 32 32">
+      <path d="M3 16h5" stroke="#18212E" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+      <path d="M8 16c3 0 4-7 8-7s5 7 8 7" stroke="#1685F8" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+      <path d="M8 16c3 0 4 7 8 7s5-7 8-7" stroke="#16A16A" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+      <circle cx="8" cy="16" r="2.6" fill="#18212E"/>
+      <circle cx="25.5" cy="16" r="2.6" fill="#18212E"/>
+    </symbol>
+  </svg>
+
+  <a class="skip-link" href="#main-content">Skip to content</a>
+
+  <header class="site-nav" id="site-nav">
+    <div class="nav-inner">
+      <a class="brand" href="index.html" aria-label="Self-Direction, project page">
+        <svg class="brand-mark" aria-hidden="true"><use href="#fork-mark"/></svg>
+        <span>Self-Direction</span>
+      </a>
+      <nav class="nav-links" aria-label="Sections">
+        <a href="#overview">Overview</a>
+        <a href="#components">Components</a>
+        <a href="#settings">Settings</a>
+      </nav>
+      <a class="back-btn" href="index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg><span>Project page</span></a>
+    </div>
+  </header>
+
+  <main id="main-content">
+
+  <!-- ============================== Intro ============================== -->
+  <section class="impl-hero">
+    <div class="wrap">
+      <a class="back-btn back-btn-hero" href="index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg><span>Back to the project page</span></a>
+      <p class="eyebrow">
+        <svg class="eyebrow-mark" aria-hidden="true"><use href="#fork-mark"/></svg>
+        Self-Direction · implementation
+      </p>
+      <h1 class="impl-title">How the loop is built</h1>
+      <p class="impl-lede">Self-Direction is a thin layer around an ordinary agent. The snippets below are trimmed from our
+        implementation to show the moving parts: they are meant to be read, not run. Every component is a standard tool, and the
+        whole loop needs no extra teacher model and never updates the base weights. You can ask your AI agent to reference this
+        and to replicate it. </p>
+      <ul class="stack" aria-label="Software stack">
+        <li><b>vLLM</b> inference server</li>
+        <li><b>SQLite</b> failure memory</li>
+        <li><b>sentence-transformers</b> router</li>
+        <li><b>PEFT</b> LoRA adapters</li>
+        <li><b>Transformers</b> trainer</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============================== Overview ============================== -->
+  <section class="section-sd is-tinted" id="overview" aria-labelledby="overview-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">01 · Overview</p>
+        <h2 id="overview-title">The whole loop, in one function</h2>
+        <p class="lede">Every task first runs on the unchanged base model. Only after a verified failure does the loop store the
+          failure, look for a stored skill that matches, train a new one if none does, and retry with the selected adapter. If
+          that retry still fails, a final clean-base attempt is the fallback. The adapter is unloaded afterwards, so the next task
+          starts from the base model again.</p>
+      </div>
+      <figure class="code-card reveal">
+        <figcaption class="code-head"><span class="code-file">self_direction.py</span><span class="code-tag">pseudocode</span></figcaption>
+<pre class="code"><code class="language-python">def run_task(task):
+    # 1. Attempt with the frozen base model (vLLM, no adapter)
+    result = agent.run(task, adapter=None)
+    if verifier.is_correct(task, result):
+        return result
+
+    # 2. Mistake: keep the task, the failure reason and the full trajectory
+    failure_id = memory.write(task, reason=classify(result), trajectory=result.trajectory)
+
+    # 3. Choose one: reuse a stored skill if one is similar enough ...
+    skill = router.best_match(task.question)              # cosine similarity over task goals
+    if skill is None or skill.score &lt; TAU:
+        # ... otherwise self-reflect and train a new adapter
+        examples = reflect(memory.get(failure_id))         # &le; 24 procedural examples, same model
+        skill = train_adapter(examples, reason=memory.get(failure_id).reason)
+        library.register(skill, source_task=task.question)
+
+    # 4. Retry with the selected skill, then fall back to a clean base attempt
+    result = agent.run(task, adapter=skill)
+    if not verifier.is_correct(task, result):
+        result = agent.run(task, adapter=None, prompt=RETRY_PROMPT)
+
+    if verifier.is_correct(task, result):
+        memory.resolve(failure_id, skill_id=result.adapter or "base")
+    return result</code></pre>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============================== Components ============================== -->
+  <section class="section-sd" id="components" aria-labelledby="components-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">02 · Components</p>
+        <h2 id="components-title">Five standard pieces</h2>
+        <p class="lede">Each step of the loop maps onto a familiar tool. Inference runs on vLLM, failures live in SQLite, a small
+          sentence-embedding model routes tasks to skills, the base model writes its own training data, and PEFT trains and loads
+          rank-16 LoRA adapters while the base weights stay frozen.</p>
+      </div>
+
+      <!-- 2.1 -->
+      <article class="impl-step reveal" aria-labelledby="c1-title">
+        <div class="impl-step-text">
+          <p class="finding-num">2.1<span>Inference</span></p>
+          <h3 id="c1-title">Attempt the task on vLLM</h3>
+          <p>The agent is a plain ReAct loop over an OpenAI-compatible vLLM server: it calls tools until it produces a final answer
+            or runs out of steps or tool calls. A benchmark verifier scores the answer. A failure is classified as a wrong answer, a
+            missing final answer, an exhausted step or tool budget, or a crash.</p>
+        </div>
+        <figure class="code-card">
+          <figcaption class="code-head"><span class="code-file">agent.py</span><span class="code-tag">vLLM · OpenAI API</span></figcaption>
+<pre class="code"><code class="language-python"># Launched once per job:
+#   vllm serve Qwen/Qwen3.6-27B --tensor-parallel-size &lt;N&gt;
+from openai import AsyncOpenAI
+
+client = AsyncOpenAI(base_url="http://127.0.0.1:8000/v1", api_key="local")
+
+async def chat(messages, tools, model="Qwen/Qwen3.6-27B"):
+    out = await client.chat.completions.create(
+        model=model,                 # base model, or an adapter name (see 2.5)
+        messages=messages, tools=tools,
+        temperature=0.6, max_tokens=16384,
+    )
+    return out.choices[0].message
+
+def classify(result):
+    if result.terminated_reason in ("step_budget", "tool_call_budget", "exception"):
+        return result.terminated_reason
+    return "no_final_response" if not result.prediction else "wrong_answer"</code></pre>
+        </figure>
+      </article>
+
+      <!-- 2.2 -->
+      <article class="impl-step reveal" aria-labelledby="c2-title">
+        <div class="impl-step-text">
+          <p class="finding-num">2.2<span>Storage</span></p>
+          <h3 id="c2-title">Remember the failure in SQLite</h3>
+          <p>Each failure is one row: the task, the failure reason and the full trajectory, plus an open/resolved status. A
+            de-duplication key makes writes idempotent, so a preempted job can resume without double-counting. Adapters live on
+            disk next to a small JSON registry that records where each one came from.</p>
+        </div>
+        <figure class="code-card">
+          <figcaption class="code-head"><span class="code-file">memory.py</span><span class="code-tag">sqlite3</span></figcaption>
+<pre class="code"><code class="language-python">import sqlite3, json
+
+db = sqlite3.connect("failures.db", isolation_level=None)
+db.execute("PRAGMA journal_mode=WAL")       # safe under job requeues
+db.execute("""
+CREATE TABLE IF NOT EXISTS failures (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    dedupe_key TEXT UNIQUE,                  -- hash(dataset, task_id, question)
+    task TEXT NOT NULL,                      -- x: the task
+    reason TEXT NOT NULL,                    -- r: why it failed
+    trajectory_json TEXT NOT NULL,           -- t: every model action and tool result
+    status TEXT NOT NULL DEFAULT 'open',     -- 'open' | 'resolved'
+    resolution_skill_id TEXT                 -- adapter that fixed it, or 'base'
+)""")
+
+def write(task, reason, trajectory, key):
+    db.execute("INSERT OR IGNORE INTO failures (dedupe_key, task, reason, trajectory_json) "
+               "VALUES (?, ?, ?, ?)", (key, task, reason, json.dumps(trajectory)))
+    return db.execute("SELECT id FROM failures WHERE dedupe_key = ?", (key,)).fetchone()[0]
+
+def resolve(failure_id, skill_id):
+    db.execute("UPDATE failures SET status = 'resolved', resolution_skill_id = ? "
+               "WHERE id = ? AND status = 'open'", (skill_id, failure_id))</code></pre>
+        </figure>
+      </article>
+
+      <!-- 2.3 -->
+      <article class="impl-step reveal" aria-labelledby="c3-title">
+        <div class="impl-step-text">
+          <p class="finding-num">2.3<span>Routing</span></p>
+          <h3 id="c3-title">Choose one: reuse or train</h3>
+          <p>Every stored adapter keeps the text of the task that produced it. A new failure is embedded with all-MiniLM-L6-v2
+            and compared with those tasks by cosine similarity. If the best match clears the threshold τ, the loop reuses that
+            adapter and skips reflection and training entirely. With τ = 1 an adapter is only ever reused on its own task.</p>
+        </div>
+        <figure class="code-card">
+          <figcaption class="code-head"><span class="code-file">router.py</span><span class="code-tag">sentence-transformers</span></figcaption>
+<pre class="code"><code class="language-python">from sentence_transformers import SentenceTransformer
+
+embedder = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+
+def best_match(question, library, tau):
+    if not library:
+        return None
+    keys = embedder.encode([a.source_task for a in library], normalize_embeddings=True)
+    query = embedder.encode(question, normalize_embeddings=True)
+    scores = keys @ query                    # cosine similarity
+    i = int(scores.argmax())
+    return library[i] if scores[i] >= tau else None   # None -> train a new adapter</code></pre>
+        </figure>
+      </article>
+
+      <!-- 2.4 -->
+      <article class="impl-step reveal" aria-labelledby="c4-title">
+        <div class="impl-step-text">
+          <p class="finding-num">2.4<span>Self-reflection</span></p>
+          <h3 id="c4-title">The same model writes its own lesson</h3>
+          <p>The clean base model, with no adapter loaded, reads the failed task, the failure reason, the verifier's answer and
+            its own trajectory. It writes up to 24 instruction → response examples that teach the missing procedure: which tools
+            to call, how to read their output, and when to stop. It is told never to copy the answer, so the examples teach the
+            process rather than the solution. No stronger teacher model is involved.</p>
+        </div>
+        <figure class="code-card">
+          <figcaption class="code-head"><span class="code-file">reflect.py</span><span class="code-tag">self-teacher</span></figcaption>
+<pre class="code"><code class="language-python">SYSTEM = """You are a teacher model for continual agent learning. A student agent
+attempted a task using tools and failed. Write training examples that teach the
+REASONING PROCESS for this class of task, not the answer to this one instance.
+Never copy the gold answer into a response. Show which tools to call and in what
+order, how to interpret their outputs, and when to stop.
+Output ONLY a JSON array of {"instruction", "response", "rationale"}."""
+
+def reflect(failure, n=24):
+    user = (f"TASK (x):\n{failure.task}\n\n"
+            f"FAILURE REASON (r):\n{failure.reason}\n{FOCUS[failure.reason]}\n\n"
+            f"GOLD ANSWER (reference only, do not copy):\n{failure.gold}\n\n"
+            f"WHAT HAPPENED (t):\n{render(failure.trajectory, max_steps=24)}\n\n"
+            f"Generate exactly {n} varied examples that teach the missing skill.")
+    text = chat_base([{"role": "system", "content": SYSTEM},
+                      {"role": "user", "content": user}], temperature=0.6)
+    return parse_json_array(text)            # retried, with a template fallback</code></pre>
+        </figure>
+      </article>
+
+      <!-- 2.5 -->
+      <article class="impl-step reveal" aria-labelledby="c5-title">
+        <div class="impl-step-text">
+          <p class="finding-num">2.5<span>Training</span></p>
+          <h3 id="c5-title">Distill the lesson into a LoRA adapter</h3>
+          <p>The examples train a rank-16 LoRA adapter with PEFT. The failure reason picks the layers: budget and missing-answer
+            failures adapt the attention projections, which steer planning, while wrong answers adapt the MLP down-projection.
+            Matrix A is set from the top singular vectors of the frozen weight and kept frozen, and B starts at zero, so the
+            adapter begins as a no-op and only B is trained, about 0.02% of the model's parameters. Training takes roughly 1.5
+            minutes on one H200, and the adapter takes about 85 MB on disk.</p>
+        </div>
+        <figure class="code-card">
+          <figcaption class="code-head"><span class="code-file">train.py</span><span class="code-tag">PEFT · Transformers</span></figcaption>
+<pre class="code"><code class="language-python">import torch
+from peft import LoraConfig, get_peft_model
+from transformers import Trainer, TrainingArguments
+
+TARGETS = {"step_budget": ["q_proj", "v_proj"], "tool_call_budget": ["q_proj", "v_proj"],
+           "no_final_response": ["q_proj", "v_proj"], "wrong_answer": ["down_proj"]}
+
+def train_adapter(examples, reason, out_dir):
+    cfg = LoraConfig(r=16, lora_alpha=16, lora_dropout=0.05, task_type="CAUSAL_LM",
+                     target_modules=TARGETS.get(reason, ["down_proj"]))
+    model = get_peft_model(base_model, cfg)            # base weights stay frozen
+
+    # SVD-initialised A (frozen), zero B (trained): the adapter starts as a no-op
+    for module in model.modules():
+        if hasattr(module, "lora_A"):
+            W = module.base_layer.weight.float()
+            _, _, V = torch.svd_lowrank(W, q=16 + 8, niter=2)
+            module.lora_A["default"].weight.data = V[:, :16].T.to(W.dtype)
+            module.lora_A["default"].weight.requires_grad_(False)
+            torch.nn.init.zeros_(module.lora_B["default"].weight)
+
+    Trainer(model=model, train_dataset=to_chat_dataset(examples),
+            args=TrainingArguments(out_dir, learning_rate=5e-4, num_train_epochs=2,
+                                   per_device_train_batch_size=1,
+                                   gradient_accumulation_steps=8, bf16=True)).train()
+    model.save_pretrained(out_dir)                     # ~85 MB per skill
+    return out_dir</code></pre>
+        </figure>
+      </article>
+
+      <!-- 2.6 -->
+      <article class="impl-step reveal" aria-labelledby="c6-title">
+        <div class="impl-step-text">
+          <p class="finding-num">2.6<span>Retry</span></p>
+          <h3 id="c6-title">Retry with the skill, then fall back</h3>
+          <p>The selected adapter is loaded onto the frozen base model and the task is retried. With vLLM, adapters can be
+            hot-loaded into the running server and selected per request by name, so serving many skills needs no restart. If the
+            adapter-guided retry fails, the adapter is unloaded and one final attempt runs on the clean base model with a prompt
+            noting that a prior attempt failed.</p>
+          <p class="impl-note">Our experiments apply adapters in-process with PEFT (<code>load_adapter</code> /
+            <code>set_adapter</code>); the vLLM calls shown here are the equivalent serving path.</p>
+        </div>
+        <figure class="code-card">
+          <figcaption class="code-head"><span class="code-file">retry.py</span><span class="code-tag">vLLM LoRA serving</span></figcaption>
+<pre class="code"><code class="language-python"># Server started with LoRA support:
+#   VLLM_ALLOW_RUNTIME_LORA_UPDATING=True \
+#   vllm serve Qwen/Qwen3.6-27B --enable-lora --max-lora-rank 16 --max-loras 4
+import httpx
+
+def load_skill(skill):
+    httpx.post("http://127.0.0.1:8000/v1/load_lora_adapter",
+               json={"lora_name": skill.skill_id, "lora_path": skill.adapter_path})
+
+async def retry(task, skill):
+    load_skill(skill)
+    result = await agent.run(task, model=skill.skill_id)       # base + this adapter
+    if verifier.is_correct(task, result):
+        return result, skill.skill_id
+    # clean-base fallback: same frozen model, no adapter
+    result = await agent.run(task, model="Qwen/Qwen3.6-27B", prompt=RETRY_PROMPT)
+    return result, ("base" if verifier.is_correct(task, result) else None)</code></pre>
+        </figure>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============================== Settings ============================== -->
+  <section class="section-sd is-tinted" id="settings" aria-labelledby="settings-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">03 · Settings</p>
+        <h2 id="settings-title">Default settings</h2>
+        <p class="lede">The same settings are used on GAIA, Claw-Eval and Terminal-Bench 2.1. The paper's appendix lists the
+          full configuration, the prompts, and the cost of building each adapter.</p>
+      </div>
+      <div class="table-scroll reveal">
+        <table class="data-table paper-table settings-table">
+          <thead>
+            <tr><th scope="col">Component</th><th scope="col">Setting</th><th scope="col">Value</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row" rowspan="2">Agent</th><td>Base model</td><td>Qwen3.6-27B, frozen</td></tr>
+            <tr><td>Sampling</td><td>temperature 0.6, up to 16,384 new tokens</td></tr>
+          </tbody>
+          <tbody>
+            <tr><th scope="row" rowspan="3">Self-reflection</th><td>Teacher</td><td>the same base model, no adapter</td></tr>
+            <tr><td>Examples per failure</td><td>up to 24</td></tr>
+            <tr><td>Trajectory shown</td><td>first and last steps, up to 24</td></tr>
+          </tbody>
+          <tbody>
+            <tr><th scope="row" rowspan="5">LoRA adapter</th><td>Rank / alpha / dropout</td><td>16 / 16 / 0.05</td></tr>
+            <tr><td>Initialization</td><td>A from SVD of the frozen weight (frozen), B = 0</td></tr>
+            <tr><td>Trainable parameters</td><td>about 0.02% of the model</td></tr>
+            <tr><td>Optimization</td><td>lr 5e-4, 2 epochs, effective batch size 8</td></tr>
+            <tr><td>Size and time</td><td>about 85 MB, about 1.5 min on one H200</td></tr>
+          </tbody>
+          <tbody>
+            <tr><th scope="row" rowspan="2">Router</th><td>Embedding model</td><td>all-MiniLM-L6-v2, cosine similarity</td></tr>
+            <tr><td>Reuse threshold τ</td><td>reuse if the best match ≥ τ; τ = 1 reuses only on the same task</td></tr>
+          </tbody>
+          <tbody>
+            <tr><th scope="row">Retry</th><td>Order</td><td>selected adapter first, then a clean-base attempt</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  </main>
+
+  <footer class="footer-sd">
+    <div class="wrap">
+      <div class="footer-brand">
+        <svg class="brand-mark" aria-hidden="true"><use href="#fork-mark"/></svg>
+        <span>Self-Direction</span>
+      </div>
+      <a class="back-btn" href="index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg><span>Back to the project page</span></a>
+    </div>
+  </footer>
+
+  <button class="scroll-to-top" type="button" onclick="scrollToTop()" title="Scroll to top" aria-label="Scroll to top">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>
+  </button>
+
+</body>
+</html>

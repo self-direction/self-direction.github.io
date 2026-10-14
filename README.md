@@ -75,4 +75,4 @@ The animation follows a small embed contract, shared by all ten variants in
 Parts of this page were adopted from the [Nerfies](https://nerfies.github.io/) page, through the Academic Project
 Page Template. The website is licensed under a
 [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/).
-Keep the link back to the template in the footer. Fonts are distributed under the SIL Open Font License 1.1.
+The credit to the template lives in this README; the page footers no longer carry it. Fonts are distributed under the SIL Open Font License 1.1.
