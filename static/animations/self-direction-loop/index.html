@@ -24,12 +24,35 @@
   .controls button:hover { border-color: #AEB8C4; }
   .controls button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
   .controls svg { width: 12px; height: 12px; display: block; pointer-events: none; }
+  .modes {
+    position: fixed; left: 10px; bottom: 10px; display: flex; gap: 2px; padding: 3px;
+    background: rgba(255, 255, 255, .92); border: 1px solid #D7DDE4; border-radius: 999px;
+    box-shadow: 0 1px 2px rgba(37, 50, 66, .08);
+    font: 600 12px/1 "Instrument Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+  html.no-controls .modes { display: none; }
+  .modes button {
+    display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px;
+    color: var(--ink-2); background: none; border: 0; border-radius: 999px; cursor: pointer; font: inherit;
+  }
+  .modes button:hover { background: rgba(37, 50, 66, .06); }
+  .modes button[aria-pressed="true"] { color: #fff; background: var(--ink); }
+  .modes button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .modes i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .modes .dot-train { background: var(--blue); }
+  .modes .dot-reuse { background: var(--green); }
+  .modes .dot-both { background: linear-gradient(90deg, var(--blue) 50%, var(--green) 50%); }
 </style>
 </head>
 <body>
 <div class="stage" id="stage" role="img"
      aria-label="Animated isometric diorama of the Self-Direction loop. A small robot agent attempts a task at a desk and fails (Mistake, error detected). At a fork signposted TRAIN and INFERENCE it must choose one route. Act one: no stored skill matches, so it takes the blue TRAIN route to a reflection lab with a lightbulb (Self-reflect, train a new adapter), where practice examples become a small adapter cartridge; the cartridge is stored in the Skill database tower (TRAIN + STORE), loaded (LOAD NEW) into the robot, and the retry succeeds (Retry, apply selected skill); the cartridge is then ejected so the base model stays clean. Act two: a related task fails, the stored skill matches, so the robot takes the green INFERENCE route to a reuse kiosk (Reuse skill, no training required), the existing cartridge is selected and loaded (SELECT + LOAD, LOAD EXISTING), and the retry succeeds again.">
   <svg id="scene" viewBox="0 0 1700 850" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+</div>
+<div class="modes" id="modes" role="group" aria-label="Which route to play">
+  <button type="button" data-mode="both" aria-pressed="true"><i class="dot-both" aria-hidden="true"></i>Both</button>
+  <button type="button" data-mode="train" aria-pressed="false"><i class="dot-train" aria-hidden="true"></i>Train</button>
+  <button type="button" data-mode="reuse" aria-pressed="false"><i class="dot-reuse" aria-hidden="true"></i>Reuse</button>
 </div>
 <div class="controls" id="controls">
   <button id="btnReplay" type="button" aria-label="Replay from the start">
@@ -1351,7 +1374,10 @@ const stage = document.getElementById('stage');
 const btn = document.getElementById('btnPlay'), btnReplay = document.getElementById('btnReplay');
 const icoPause = document.getElementById('icoPause'), icoPlay = document.getElementById('icoPlay');
 
-let clock = reduceMotion || params.get('autoplay') === '0' ? STATIC_T : 0;
+// Route modes: "both" plays the whole loop; "train" / "reuse" loop over one act.
+const MODES = { both: [0, DURATION], train: [0, 12.3], reuse: [12.3, DURATION] };
+let mode = MODES[params.get('mode')] ? params.get('mode') : 'both';
+let clock = reduceMotion || params.get('autoplay') === '0' ? STATIC_T : MODES[mode][0];
 let playing = false, last = null, raf = 0;
 let userPaused = reduceMotion || params.get('autoplay') === '0';
 let pageVisible = !document.hidden, onScreen = true;
@@ -1361,7 +1387,11 @@ applyView();
 render(clock);
 
 function tick(now) {
-  if (last !== null) clock = (clock + (now - last) / 1000) % DURATION;
+  if (last !== null) {
+    const [a, b] = MODES[mode];
+    clock += (now - last) / 1000;
+    if (clock >= b || clock < a) clock = a + ((clock - a) % (b - a) + (b - a)) % (b - a);
+  }
   last = now;
   render(clock);
   raf = requestAnimationFrame(tick);
@@ -1379,7 +1409,18 @@ function pause() { userPaused = true; sync(); }
 function seek(s) { clock = ((s % DURATION) + DURATION) % DURATION; render(clock); }
 
 btn.addEventListener('click', () => (userPaused ? play() : pause()));
-btnReplay.addEventListener('click', () => { seek(0); play(); });
+btnReplay.addEventListener('click', () => { seek(MODES[mode][0]); play(); });
+
+const modeButtons = [...document.querySelectorAll('#modes button')];
+function setMode(next) {
+  if (!MODES[next]) return;
+  mode = next;
+  modeButtons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+  seek(MODES[mode][0]);
+  play();
+}
+modeButtons.forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+modeButtons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
 addEventListener('keydown', ev => {
   if (ev.code === 'Space' && !(ev.target instanceof HTMLButtonElement)) { ev.preventDefault(); userPaused ? play() : pause(); }
 });
@@ -1387,7 +1428,7 @@ document.addEventListener('visibilitychange', () => { pageVisible = !document.hi
 if ('IntersectionObserver' in window) new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; sync(); }).observe(stage);
 addEventListener('resize', () => { applyView(); render(clock); });
 sync();
-window.SDAnim = { play, pause, seek, duration: DURATION };
+window.SDAnim = { play, pause, seek, setMode, duration: DURATION, get mode() { return mode; } };
 })();
 </script>
 </body>

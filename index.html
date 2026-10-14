@@ -64,7 +64,7 @@
   <link rel="preload" href="static/fonts/instrument-sans.woff2" as="font" type="font/woff2" crossorigin>
 
   <link rel="stylesheet" href="static/css/bulma.min.css">
-  <link rel="stylesheet" href="static/css/index.css?v=20261006">
+  <link rel="stylesheet" href="static/css/index.css?v=20261014">
 
   <script defer src="static/js/index.js?v=20261006"></script>
 
@@ -183,7 +183,7 @@
 
       <figure class="hero-figure">
         <div class="anim-frame">
-          <iframe src="static/animations/self-direction-loop/index.html"
+          <iframe src="static/animations/self-direction-loop/index.html?v=20261014"
                   title="Animation: the Self-Direction loop. An agent fails a task, trains or reuses a skill adapter, and retries."
                   loading="eager"></iframe>
         </div>
@@ -238,9 +238,60 @@
       <div class="section-head reveal">
         <p class="eyebrow">01 · The problem</p>
         <h2 id="problem-title">Extra compute usually disappears with the episode</h2>
-        <p class="lede">Agents can often recover from a mistake by trying again. But retries and test-time scaling leave nothing
-          behind: the next time a similar task appears, the agent makes the same mistake. Self-Direction keeps part of that
-          effort as a skill.</p>
+        <p class="lede">Modern agents can often correct a mistake and finish the task at hand, but the recovery is ephemeral: in a
+          new session the agent is just as likely to make the same mistake again. As workflows grow longer, every extra step is
+          another chance to slip, and rediscovering the same lesson over and over is costly and makes performance inconsistent.
+          The goal is not only to fix the mistake now, but to keep the lesson so it is not repeated.</p>
+      </div>
+
+      <!-- Anecdote: paper Figure 15 (GAIA Level 1) -->
+      <figure class="anecdote reveal">
+        <figcaption class="anecdote-head">
+          <span class="anecdote-kicker">A mistake, up close · GAIA Level 1</span>
+          <q>What was the actual enrollment count of the clinical trial on H. pylori in acne vulgaris patients from Jan–May 2018,
+            as listed on the NIH website?</q>
+        </figcaption>
+        <div class="anecdote-steps">
+          <div class="anecdote-step is-fail">
+            <span class="step-label">Attempt 1 · base agent</span>
+            <p>47 of 50 steps are near-duplicate web searches. It keeps hitting a retired ClinicalTrials.gov endpoint, guesses
+              trial IDs, and runs out of steps.</p>
+            <span class="step-answer">Answers 60 <b>wrong</b></span>
+          </div>
+          <div class="anecdote-step is-reflect">
+            <span class="step-label">Self-reflection</span>
+            <p>The agent reads its own failed trajectory and the grader's verdict, writes 24 corrective examples ("use trial IDs
+              for precise follow-ups", "strict step budget"), and trains a LoRA adapter on them.</p>
+          </div>
+          <div class="anecdote-step is-pass">
+            <span class="step-label">Attempt 2 · base agent + adapter</span>
+            <p>Switches to Python and the ClinicalTrials.gov v2 API, finds trial NCT03411733 in a few steps, and confirms it on the
+              study page.</p>
+            <span class="step-answer">Answers 90 <b>correct</b></span>
+          </div>
+        </div>
+        <p class="anecdote-note">Without a persistent lesson, the next session starts from attempt 1 again. Example from the paper,
+          Figure 15.</p>
+      </figure>
+
+      <h3 class="gap-title reveal">Why the usual fixes fall short</h3>
+      <div class="gap-grid reveal">
+        <div class="gap-card">
+          <span class="gap-where">Retry or resample</span>
+          <p>Extra attempts recover the task now (+10.9 pp with pass@3 on GAIA), but the weights are untouched, so nothing carries
+            over to the next session.</p>
+        </div>
+        <div class="gap-card">
+          <span class="gap-where">Keep lessons in context</span>
+          <p>Reflections and skill files stay outside the policy: they must be retrieved every time and compete for a finite
+            context. On GAIA, the full learning history would take about 3.1M tokens, nearly 12 context windows; a compact
+            Skills.md fits, but recovers fewer failures than in-weight lessons.</p>
+        </div>
+        <div class="gap-card">
+          <span class="gap-where">Write lessons into the weights</span>
+          <p>Full fine-tuning is expensive and can interfere with what the model already knows. Pooling every lesson into one
+            LoRA also dilutes it: it recovers 16.7% of GAIA failures, against 27.7% with one adapter per failure.</p>
+        </div>
       </div>
 
       <div class="encounters reveal" role="img" aria-label="On the first encounter, a mistake is corrected by spending extra compute. On future encounters, existing agents repeat the mistake, while Self-Direction avoids it.">

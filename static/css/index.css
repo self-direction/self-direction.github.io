@@ -764,6 +764,129 @@ strong {
 .enc-badge.is-good { background: var(--green-tint); }
 .enc-badge.is-good svg { stroke: var(--green-ink); }
 
+/* problem: anecdote + why the usual fixes fall short */
+
+.anecdote {
+  margin: 0 0 48px;
+  padding: 26px 28px 22px;
+  border: 1px solid var(--rule);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+
+.anecdote-head {
+  margin-bottom: 20px;
+}
+
+.anecdote-kicker,
+.step-label,
+.gap-where {
+  display: block;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.anecdote-head q {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--serif);
+  font-size: 21px;
+  line-height: 1.4;
+  color: var(--ink);
+  quotes: "\201C" "\201D";
+}
+
+.anecdote-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.anecdote-step {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: var(--paper);
+  border-top: 3px solid var(--rule);
+}
+
+.anecdote-step p {
+  flex: 1;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.anecdote-step.is-fail { border-top-color: var(--warn); }
+.anecdote-step.is-reflect { border-top-color: var(--blue); background: var(--blue-tint); }
+.anecdote-step.is-pass { border-top-color: var(--green); background: var(--green-tint); }
+
+.step-answer {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.is-fail .step-answer b { color: #C4472C; }
+.is-pass .step-answer b { color: var(--green-ink); }
+
+.anecdote-note {
+  margin: 16px 0 0;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.gap-title {
+  margin: 0 0 16px;
+  font-family: var(--serif);
+  font-size: 23px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.gap-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 52px;
+}
+
+.gap-card {
+  padding: 18px 20px;
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.gap-card .gap-where {
+  margin-bottom: 8px;
+  color: var(--ink-2);
+}
+
+.gap-card p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+@media (max-width: 900px) {
+  .anecdote-steps, .gap-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .anecdote { padding: 20px 16px 18px; }
+  .anecdote-head q { font-size: 18px; }
+}
+
 /* ------------------------------------------------------------------ abstract */
 
 .abstract p {
