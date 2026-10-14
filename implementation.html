@@ -13,7 +13,7 @@
   <link rel="preload" href="static/fonts/newsreader-roman.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="static/fonts/instrument-sans.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="static/css/bulma.min.css">
-  <link rel="stylesheet" href="static/css/index.css?v=20261017">
+  <link rel="stylesheet" href="static/css/index.css?v=20261018">
   <script defer src="static/js/index.js?v=20261017"></script>
   <script defer src="static/js/code.js?v=20261017"></script>
 </head>
@@ -87,7 +87,7 @@
 <pre class="code"><code class="language-python">def run_task(task):
     # 1. Attempt with the frozen base model (vLLM, no adapter)
     result = agent.run(task, adapter=None)
-    if verifier.is_correct(task, result):
+    if is_correct(task, result):
         return result
 
     # 2. Mistake: keep the task, the failure reason and the full trajectory
@@ -103,10 +103,10 @@
 
     # 4. Retry with the selected skill, then fall back to a clean base attempt
     result = agent.run(task, adapter=skill)
-    if not verifier.is_correct(task, result):
+    if not is_correct(task, result):
         result = agent.run(task, adapter=None, prompt=RETRY_PROMPT)
 
-    if verifier.is_correct(task, result):
+    if is_correct(task, result):
         memory.resolve(failure_id, skill_id=result.adapter or "base")
     return result</code></pre>
       </figure>
@@ -130,7 +130,7 @@
           <p class="finding-num">2.1<span>Inference</span></p>
           <h3 id="c1-title">Attempt the task on vLLM</h3>
           <p>The agent is a plain ReAct loop over an OpenAI-compatible vLLM server: it calls tools until it produces a final answer
-            or runs out of steps or tool calls. A benchmark verifier scores the answer. A failure is classified as a wrong answer, a
+            or runs out of steps or tool calls. <code>is_correct</code> can be any feedback signal on the outcome; in our experiments it is the benchmark's own check. A failure is classified as a wrong answer, a
             missing final answer, an exhausted step or tool budget, or a crash.</p>
         </div>
         <figure class="code-card">
@@ -167,7 +167,7 @@ def classify(result):
         </div>
         <figure class="code-card">
           <figcaption class="code-head"><span class="code-file">memory.py</span><span class="code-tag">sqlite3</span></figcaption>
-<pre class="code"><code class="language-python">import sqlite3, json
+<pre class="code"><code class="language-python">import sqlite3
 
 db = sqlite3.connect("failures.db", isolation_level=None)
 db.execute("PRAGMA journal_mode=WAL")       # safe under job requeues
@@ -181,11 +181,6 @@ CREATE TABLE IF NOT EXISTS failures (
     status TEXT NOT NULL DEFAULT 'open',     -- 'open' | 'resolved'
     resolution_skill_id TEXT                 -- adapter that fixed it, or 'base'
 )""")
-
-def write(task, reason, trajectory, key):
-    db.execute("INSERT OR IGNORE INTO failures (dedupe_key, task, reason, trajectory_json) "
-               "VALUES (?, ?, ?, ?)", (key, task, reason, json.dumps(trajectory)))
-    return db.execute("SELECT id FROM failures WHERE dedupe_key = ?", (key,)).fetchone()[0]
 
 def resolve(failure_id, skill_id):
     db.execute("UPDATE failures SET status = 'resolved', resolution_skill_id = ? "
@@ -224,7 +219,7 @@ def best_match(question, library, tau):
         <div class="impl-step-text">
           <p class="finding-num">2.4<span>Self-reflection</span></p>
           <h3 id="c4-title">The same model writes its own lesson</h3>
-          <p>The clean base model, with no adapter loaded, reads the failed task, the failure reason, the verifier's answer and
+          <p>The clean base model, with no adapter loaded, reads the failed task, the failure reason, the verifier's answer (if available; only in GAIA for our case) and
             its own trajectory. It writes up to 24 instruction → response examples that teach the missing procedure: which tools
             to call, how to read their output, and when to stop. It is told never to copy the answer, so the examples teach the
             process rather than the solution. No stronger teacher model is involved.</p>
@@ -319,11 +314,11 @@ def load_skill(skill):
 async def retry(task, skill):
     load_skill(skill)
     result = await agent.run(task, model=skill.skill_id)       # base + this adapter
-    if verifier.is_correct(task, result):
+    if is_correct(task, result):
         return result, skill.skill_id
     # clean-base fallback: same frozen model, no adapter
     result = await agent.run(task, model="Qwen/Qwen3.6-27B", prompt=RETRY_PROMPT)
-    return result, ("base" if verifier.is_correct(task, result) else None)</code></pre>
+    return result, ("base" if is_correct(task, result) else None)</code></pre>
         </figure>
       </article>
     </div>

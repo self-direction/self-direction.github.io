@@ -25,23 +25,46 @@
   .controls button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
   .controls svg { width: 12px; height: 12px; display: block; pointer-events: none; }
   .modes {
-    position: fixed; left: 10px; bottom: 10px; display: flex; gap: 2px; padding: 3px;
-    background: rgba(255, 255, 255, .92); border: 1px solid #D7DDE4; border-radius: 999px;
-    box-shadow: 0 1px 2px rgba(37, 50, 66, .08);
+    position: fixed; left: 10px; bottom: 10px; display: flex; align-items: center; gap: 6px;
     font: 600 12px/1 "Instrument Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
   }
   html.no-controls .modes { display: none; }
-  .modes button {
-    display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px;
-    color: var(--ink-2); background: none; border: 0; border-radius: 999px; cursor: pointer; font: inherit;
+  .modes-label {
+    padding: 0 2px 0 4px; color: var(--muted);
+    font: 600 10.5px/1 ui-monospace, "JetBrains Mono", Menlo, monospace; letter-spacing: .08em; text-transform: uppercase;
   }
-  .modes button:hover { background: rgba(37, 50, 66, .06); }
-  .modes button[aria-pressed="true"] { color: #fff; background: var(--ink); }
-  .modes button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
-  .modes i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
-  .modes .dot-train { background: var(--blue); }
-  .modes .dot-reuse { background: var(--green); }
-  .modes .dot-both { background: linear-gradient(90deg, var(--blue) 50%, var(--green) 50%); }
+  /* each route is a checkbox-style toggle: box with a tick when on, empty box when off */
+  .modes button {
+    --c: var(--blue); --tint: #EDF6FF;
+    position: relative; overflow: hidden;
+    display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px 0 9px;
+    color: var(--muted); background: rgba(255, 255, 255, .95);
+    border: 1.5px solid #CFD6DE; border-radius: 999px; cursor: pointer; font: inherit;
+    box-shadow: 0 1px 2px rgba(37, 50, 66, .08);
+    transition: color .15s, background .15s, border-color .15s, box-shadow .15s, transform .15s;
+  }
+  .modes button[data-route="reuse"] { --c: var(--green); --tint: #E7F8F0; }
+  .modes button:hover { border-color: var(--c); color: var(--ink); box-shadow: 0 2px 6px rgba(37, 50, 66, .14); transform: translateY(-1px); }
+  .modes button:active { transform: translateY(0); }
+  .modes button[aria-pressed="true"] { color: var(--ink); background: var(--tint); border-color: var(--c); }
+  .modes button:focus-visible { outline: 2px solid var(--c); outline-offset: 2px; }
+  .modes i {
+    display: grid; place-items: center; width: 14px; height: 14px; border-radius: 4px; flex: none; box-sizing: border-box;
+    border: 1.5px solid #AEB8C4; background: #fff; transition: background .15s, border-color .15s;
+  }
+  .modes i svg { width: 10px; height: 10px; opacity: 0; transition: opacity .15s; }
+  .modes button:hover i { border-color: var(--c); }
+  .modes button[aria-pressed="true"] i { background: var(--c); border-color: var(--c); }
+  .modes button[aria-pressed="true"] i svg { opacity: 1; }
+  /* progress of the act that is playing right now */
+  .modes button::after {
+    content: ""; position: absolute; left: 0; bottom: 0; height: 2.5px;
+    width: calc(var(--p, 0) * 100%); background: var(--c); opacity: 0; transition: opacity .2s;
+  }
+  .modes button.is-playing::after { opacity: 1; }
+  .modes button.is-locked { animation: nudge .28s; }
+  @media (max-width: 480px) { .modes .long, .modes-label { display: none; } }
+  @keyframes nudge { 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } }
 </style>
 </head>
 <body>
@@ -49,10 +72,10 @@
      aria-label="Animated isometric diorama of the Self-Direction loop. A small robot agent attempts a task at a desk and fails (Mistake, error detected). At a fork signposted TRAIN and INFERENCE it must choose one route. Act one: no stored skill matches, so it takes the blue TRAIN route to a reflection lab with a lightbulb (Self-reflect, train a new adapter), where practice examples become a small adapter cartridge; the cartridge is stored in the Skill database tower (TRAIN + STORE), loaded (LOAD NEW) into the robot, and the retry succeeds (Retry, apply selected skill); the cartridge is then ejected so the base model stays clean. Act two: a related task fails, the stored skill matches, so the robot takes the green INFERENCE route to a reuse kiosk (Reuse skill, no training required), the existing cartridge is selected and loaded (SELECT + LOAD, LOAD EXISTING), and the retry succeeds again.">
   <svg id="scene" viewBox="0 0 1700 850" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
 </div>
-<div class="modes" id="modes" role="group" aria-label="Which route to play">
-  <button type="button" data-mode="both" aria-pressed="true"><i class="dot-both" aria-hidden="true"></i>Both</button>
-  <button type="button" data-mode="train" aria-pressed="false"><i class="dot-train" aria-hidden="true"></i>Train</button>
-  <button type="button" data-mode="reuse" aria-pressed="false"><i class="dot-reuse" aria-hidden="true"></i>Reuse</button>
+<div class="modes" id="modes" role="group" aria-label="Routes to play">
+  <span class="modes-label" aria-hidden="true">Play</span>
+  <button type="button" data-route="train" aria-pressed="true" title="Show or hide the train route"><i aria-hidden="true"><svg viewBox="0 0 10 10"><path d="M2 5.2l2 2L8 3" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></i><span>Train<span class="long"> a new skill</span></span></button>
+  <button type="button" data-route="reuse" aria-pressed="true" title="Show or hide the reuse route"><i aria-hidden="true"><svg viewBox="0 0 10 10"><path d="M2 5.2l2 2L8 3" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></i><span>Reuse<span class="long"> a stored skill</span></span></button>
 </div>
 <div class="controls" id="controls">
   <button id="btnReplay" type="button" aria-label="Replay from the start">
@@ -1267,9 +1290,10 @@ function render(t) {
     show(e, a); place(e, x, y, 0.6 + 0.6 * a);
   });
 
-  /* act indicator */
-  show(R.act1, t < 15 ? 1 - win(t, 11.8, 12.0) : win(t, 23.68, 23.9));
-  show(R.act2, t < 15 ? win(t, 12.05, 12.3) : 1 - win(t, 23.4, 23.6));
+  /* act indicator: only in bare embeds (?controls=0); otherwise the route toggles show the act */
+  const hud = document.documentElement.classList.contains('no-controls') ? 1 : 0;
+  show(R.act1, hud * (t < 15 ? 1 - win(t, 11.8, 12.0) : win(t, 23.68, 23.9)));
+  show(R.act2, hud * (t < 15 ? win(t, 12.05, 12.3) : 1 - win(t, 23.4, 23.6)));
 
   /* active mono labels: soft tint behind the label while its segment is in use */
   const L = R.labels;
@@ -1375,7 +1399,8 @@ const btn = document.getElementById('btnPlay'), btnReplay = document.getElementB
 const icoPause = document.getElementById('icoPause'), icoPlay = document.getElementById('icoPlay');
 
 // Route modes: "both" plays the whole loop; "train" / "reuse" loop over one act.
-const MODES = { both: [0, DURATION], train: [0, 12.3], reuse: [12.3, DURATION] };
+const ACT_SPLIT = 12.3;
+const MODES = { both: [0, DURATION], train: [0, ACT_SPLIT], reuse: [ACT_SPLIT, DURATION] };
 let mode = MODES[params.get('mode')] ? params.get('mode') : 'both';
 let clock = reduceMotion || params.get('autoplay') === '0' ? STATIC_T : MODES[mode][0];
 let playing = false, last = null, raf = 0;
@@ -1394,6 +1419,7 @@ function tick(now) {
   }
   last = now;
   render(clock);
+  updateModes();
   raf = requestAnimationFrame(tick);
 }
 function sync() {
@@ -1406,21 +1432,40 @@ function sync() {
 }
 function play() { userPaused = false; sync(); }
 function pause() { userPaused = true; sync(); }
-function seek(s) { clock = ((s % DURATION) + DURATION) % DURATION; render(clock); }
+function seek(s) { clock = ((s % DURATION) + DURATION) % DURATION; render(clock); updateModes(); }
 
 btn.addEventListener('click', () => (userPaused ? play() : pause()));
 btnReplay.addEventListener('click', () => { seek(MODES[mode][0]); play(); });
 
-const modeButtons = [...document.querySelectorAll('#modes button')];
+// Two on/off toggles: both on plays the whole loop, one on loops that act. The last one on stays on.
+const routeButtons = [...document.querySelectorAll('#modes button')];
+const routeOn = r => mode === 'both' || mode === r;
+function updateModes() {
+  const act = clock < ACT_SPLIT ? 'train' : 'reuse';
+  const [a, b] = MODES[act];
+  routeButtons.forEach(btn => {
+    const on = btn.dataset.route === act;
+    btn.classList.toggle('is-playing', on);
+    if (on) btn.style.setProperty('--p', ((clock - a) / (b - a)).toFixed(3));
+  });
+}
 function setMode(next) {
   if (!MODES[next]) return;
   mode = next;
-  modeButtons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+  routeButtons.forEach(btn => btn.setAttribute('aria-pressed', String(routeOn(btn.dataset.route))));
   seek(MODES[mode][0]);
   play();
 }
-modeButtons.forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
-modeButtons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+routeButtons.forEach(btn => btn.addEventListener('click', () => {
+  const r = btn.dataset.route, other = r === 'train' ? 'reuse' : 'train';
+  if (mode === r) {                                     // last route on: keep it, nudge instead
+    btn.classList.remove('is-locked'); void btn.offsetWidth; btn.classList.add('is-locked');
+    return;
+  }
+  setMode(mode === 'both' ? other : 'both');
+}));
+routeButtons.forEach(btn => btn.setAttribute('aria-pressed', String(routeOn(btn.dataset.route))));
+updateModes();
 addEventListener('keydown', ev => {
   if (ev.code === 'Space' && !(ev.target instanceof HTMLButtonElement)) { ev.preventDefault(); userPaused ? play() : pause(); }
 });

@@ -469,34 +469,6 @@ strong {
   display: block;
 }
 
-.hero-caption {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px 26px;
-  margin-top: 18px;
-  font-size: 14.5px;
-  color: var(--ink-2);
-}
-
-.branch-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-}
-
-.branch-chip i {
-  display: inline-block;
-  width: 22px;
-  height: 4px;
-  border-radius: 4px;
-  background: var(--blue);
-}
-
-.branch-chip.is-reuse i {
-  background: var(--green);
-}
-
 /* ------------------------------------------------------------------ TL;DR band */
 
 .band {
