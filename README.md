@@ -1,6 +1,6 @@
 # Self-Direction · project page
 
-Project page for **"Don't Forget What You Just Learned: Self-Directed Repair Makes Agent Skills Persist"**
+Project page for **"Don’t Forget What You Just Learned: Self-Directed Repair Turns Agent Mistakes Into Lasting Lessons"**
 (Yuval Kansal, Karen Ullrich, Polina Kirichenko, Ilia Kulikov, Niraj K. Jha, Mohammad Pezeshki, Mark Ibrahim).
 
 Built on the [Academic Project Page Template](https://github.com/eliahuhorwitz/Academic-project-page-template)
@@ -47,10 +47,8 @@ uv run --with pymupdf python tools/extract_paper_figures.py path/to/paper.pdf
 
 Search `index.html` for `TODO`:
 
-- [ ] Paper, arXiv and Code links. They are currently grey "soon" buttons: set `href`, then drop
-      `aria-disabled` and the `soon` tag.
 - [ ] `og:url`, plus absolute URLs for `og:image` / `twitter:image` once the site is deployed.
-- [ ] `citation_pdf_url` / arXiv id, the BibTeX venue line, and the venue line under the authors.
+- [ ] The BibTeX venue line and the venue line under the authors, once the paper is published.
 - [ ] Re-check numbers against the camera-ready paper. They match the submitted version (main text, Tables 1 and 7,
       Appendix C.6–C.8). KPI tiles and prose in `index.html` repeat some of the chart numbers.
 

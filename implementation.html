@@ -167,7 +167,7 @@ def classify(result):
         </div>
         <figure class="code-card">
           <figcaption class="code-head"><span class="code-file">memory.py</span><span class="code-tag">sqlite3</span></figcaption>
-<pre class="code"><code class="language-python">import sqlite3
+<pre class="code"><code class="language-python">import sqlite3, json
 
 db = sqlite3.connect("failures.db", isolation_level=None)
 db.execute("PRAGMA journal_mode=WAL")       # safe under job requeues
@@ -181,6 +181,11 @@ CREATE TABLE IF NOT EXISTS failures (
     status TEXT NOT NULL DEFAULT 'open',     -- 'open' | 'resolved'
     resolution_skill_id TEXT                 -- adapter that fixed it, or 'base'
 )""")
+
+def write(task, reason, trajectory, key):
+    db.execute("INSERT OR IGNORE INTO failures (dedupe_key, task, reason, trajectory_json) "
+               "VALUES (?, ?, ?, ?)", (key, task, reason, json.dumps(trajectory)))
+    return db.execute("SELECT id FROM failures WHERE dedupe_key = ?", (key,)).fetchone()[0]
 
 def resolve(failure_id, skill_id):
     db.execute("UPDATE failures SET status = 'resolved', resolution_skill_id = ? "
